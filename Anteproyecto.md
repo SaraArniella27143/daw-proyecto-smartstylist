@@ -1,4 +1,4 @@
-# Anteproyecto: SmartStylist hh
+# Anteproyecto: SmartStylist
 
 **Módulo:** Proyecto Intermodular (0379 · PIDW2) — 2º DAW Virtual 
 **Centro:** CIFP Avilés (Curso 2026/2027) 

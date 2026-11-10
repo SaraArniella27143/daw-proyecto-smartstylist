@@ -32,7 +32,6 @@ class OutfitLogSeeder extends Seeder
 
             DB::table('outfit_logs')->updateOrInsert(
                 [
-                    'user_id' => $user->id,
                     'outfit_id' => $outfit->id,
                     'used_at' => $log['used_at'],
                 ],

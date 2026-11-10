@@ -10,7 +10,6 @@ return new class extends Migration
     {
         Schema::create('outfit_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('outfit_id')->constrained('outfits')->cascadeOnDelete();
             $table->timestampTz('used_at');
             $table->timestampsTz();

@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
+    private const ADMIN_DEMO_PASSWORD = 'Admin1234!';
+    private const USER_DEMO_PASSWORD = 'User1234!';
+
     public function run(): void
     {
         $users = [
@@ -17,12 +20,17 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($users as $user) {
+            if ($user['role'] === 'admin') {
+                $hashedPassword = Hash::make(self::ADMIN_DEMO_PASSWORD);
+            } else {
+                $hashedPassword = Hash::make(self::USER_DEMO_PASSWORD);
+            }
             DB::table('users')->updateOrInsert(
                 ['email' => $user['email']],
                 [
                     ...$user,
                     'email_verified_at' => now(),
-                    'password' => Hash::make('PasswordSecure123*'),
+                    'password' => $hashedPassword,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ],

@@ -6,19 +6,14 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'outfit_id', 'used_at'])]
+#[Fillable(['outfit_id', 'used_at'])]
 class OutfitLog extends Model
 {
     protected function casts(): array
     {
         return [
-            'used_at' => 'datetime',
+            'used_at' => 'immutable_datetime',
         ];
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
     }
 
     public function outfit(): BelongsTo

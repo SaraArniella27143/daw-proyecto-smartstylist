@@ -31,6 +31,20 @@ class AuthService
         return ['user' => $user, 'token' => $token];
     }
 
+    /**
+     * @param  array{name: string, email: string, password: string}  $details
+     * @return array{user: User, token: string}
+     */
+    public function register(array $details): array
+    {
+        $user = User::create([
+            ...$details,
+            'role' => 'user',
+        ]);
+
+        return ['user' => $user, 'token' => $this->guard()->login($user)];
+    }
+
     public function logout(): void
     {
         $this->guard()->logout();

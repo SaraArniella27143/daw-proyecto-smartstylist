@@ -33,6 +33,28 @@
           "response": []
         },
         {
+          "name": "Registrar usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Usuario Postman\",\n  \"email\": \"{{registeredEmail}}\",\n  \"password\": \"PostmanPassword123!\",\n  \"password_confirmation\": \"PostmanPassword123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "register"]
+            },
+            "description": "POST /api/register. Para repetir la prueba, cambia registeredEmail por una dirección todavía no registrada. Espera 201 y un usuario con rol user."
+          },
+          "response": []
+        },
+        {
           "name": "Iniciar sesión como administrador",
           "request": {
             "method": "POST",

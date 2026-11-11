@@ -23,6 +23,13 @@ class AuthController extends Controller
         return $this->tokenResponse($result['user'], $result['token']);
     }
 
+    public function register(RegisterRequest $request, AuthService $authService): JsonResponse
+    {
+        $result = $authService->register($request->validated());
+
+        return $this->tokenResponse($result['user'], $result['token'], 201);
+    }
+
     public function logout(AuthService $authService): JsonResponse
     {
         $authService->logout();

@@ -2,7 +2,7 @@
 
 API REST de SmartStylist, construida con Laravel 13 y PHP 8.3. La aplicación usa PostgreSQL para persistir usuarios y datos relacionados con el armario y las sugerencias de conjuntos. La autenticación de la API se realiza con JWT (JSON Web Token).
 
-> **Estado actual:** están implementados el health check y los endpoints de registro, login y logout. Existen tablas y datos iniciales para prendas, categorías, colores, estilos, conjuntos y agenda, pero todavía no hay endpoints HTTP para consultar o modificar esos recursos.
+> **Estado actual:** están disponibles el health check, el registro de usuarios, el login y logout con JWT, y el borrado de usuarios por parte de administradores. El borrado no permite eliminar al último administrador. La base de datos ya tiene tablas y seeders para prendas, categorías, colores, estilos, conjuntos y agenda, pero esos recursos todavía no tienen endpoints HTTP.
 
 ## Requisitos
 
@@ -105,6 +105,7 @@ Todas las solicitudes y respuestas de la API usan JSON. En las peticiones `POST`
 | `POST` | `/api/register` | No | Registra una cuenta estándar y devuelve un JWT. |
 | `POST` | `/api/login` | No | Valida credenciales y devuelve un JWT. |
 | `POST` | `/api/logout` | Sí | Invalida el JWT enviado. |
+| `DELETE` | `/api/users/{id}` | Sí, rol `admin` | Elimina una cuenta por su ID; no permite eliminar al último administrador. |
 | `GET` | `/up` | No | Health check de Laravel. |
 
 ### Health check de la API
@@ -209,6 +210,30 @@ Accept: application/json
 
 Si el token es válido, devuelve `204 No Content` sin cuerpo e invalida ese JWT. El guard `auth:api` protege la ruta. Si no se incluye un token válido, la API responde `401 Unauthorized`.
 
+### Eliminar usuario
+
+Solo un usuario autenticado con rol `admin` puede eliminar usuarios. Envía el ID numérico de la cuenta en la URL y el JWT de administrador en la cabecera `Authorization`. No se necesita un cuerpo JSON:
+
+```http
+DELETE /api/users/42
+Authorization: Bearer eyJ...<token>...Qss
+Accept: application/json
+```
+
+Si la eliminación se completa, la API responde `204 No Content` sin cuerpo. La ruta devuelve `401 Unauthorized` si el token falta o no es válido y `403 Forbidden` si el usuario autenticado no tiene rol `admin`. Si la cuenta solicitada es el último administrador, no se elimina y se responde `409 Conflict`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "No se puede eliminar al último administrador.",
+  "instance": "/api/users/42"
+}
+```
+
+La eliminación se ejecuta en una transacción y comprueba el número de administradores antes de borrar, para conservar siempre al menos uno.
+
 ### Errores de validación
 
 Los errores de validación devuelven `422 Unprocessable Content` con formato `application/problem+json`. El objeto `errors` identifica los campos con problemas:
@@ -229,60 +254,44 @@ Los errores de validación devuelven `422 Unprocessable Content` con formato `ap
 
 Los mensajes de validación de Laravel están actualmente en inglés; los mensajes generales de autenticación están en español.
 
-## Ejemplos desde PowerShell
+## Probar la API con Postman
 
-Comprobar el health check:
+La colección [SmartStylist API](../docs/api/api.postman_collection.json) contiene solicitudes listas para importar. En Postman, selecciona **Import**, elige **Files** y abre `docs/api/api.postman_collection.json` del repositorio. La colección usa `http://localhost:8000` como `baseUrl` inicial; cámbiala en las variables de la colección si el servidor escucha en otra dirección o puerto.
 
-```powershell
-Invoke-RestMethod -Uri 'http://127.0.0.1:8000/api/health'
-```
+La colección incluye estos 10 casos:
 
-Registrar un usuario:
+| Grupo | Solicitud | Resultado esperado |
+|---|---|---|
+| Autenticación | Health check | `200 OK`, confirma que la API está disponible. |
+| Autenticación | Registrar usuario | `201 Created`, crea un usuario estándar y devuelve un JWT. |
+| Autenticación | Iniciar sesión como administrador | `200 OK`, obtiene el token del usuario demo administrador. |
+| Autenticación | Iniciar sesión como usuario 1 | `200 OK`, obtiene el token de un usuario demo estándar. |
+| Autenticación | Iniciar sesión como usuario 2 | `200 OK`, obtiene el token de otro usuario demo estándar. |
+| Autenticación | Cerrar sesión e invalidar token | `204 No Content`, invalida el token de usuario 1. |
+| Autenticación | Login con credenciales inválidas | `401 Unauthorized` en formato Problem Details. |
+| Administración de usuarios | Eliminar usuario con token estándar | `403 Forbidden`; un usuario estándar no puede borrar cuentas. |
+| Administración de usuarios | Eliminar usuario con token admin | `204 No Content`; no se puede eliminar al último administrador. |
+| Administración de usuarios | Eliminar usuario inexistente con token admin | `404 Not Found`. |
 
-```powershell
-$body = @{
-    name = 'Ana García'
-    email = 'ana@example.com'
-    password = 'una-clave-segura-123'
-    password_confirmation = 'una-clave-segura-123'
-} | ConvertTo-Json
+### Variables y orden recomendado
 
-$registro = Invoke-RestMethod `
-    -Uri 'http://127.0.0.1:8000/api/register' `
-    -Method Post `
-    -ContentType 'application/json' `
-    -Headers @{ Accept = 'application/json' } `
-    -Body $body
+La colección ya define `baseUrl`, las contraseñas demo y las variables donde guardar tokens (`adminToken`, `user1Token`, `user2Token`). No tiene scripts que copien automáticamente los tokens: después de cada login, copia `access_token` de la respuesta en la variable correspondiente desde **Edit collection → Variables**.
 
-$token = $registro.access_token
-$token
-```
+Para completar las solicitudes de registro y borrado, añade también estas variables de colección:
 
-Iniciar sesión y cerrar sesión:
+- `registeredEmail`: una dirección de correo todavía no registrada. Cámbiala cada vez que repitas el registro, ya que el correo debe ser único.
+- `userToDeleteId`: el ID numérico de un usuario que quieras eliminar. Para probar el caso positivo, crea primero una cuenta estándar y copia su `user.id` de la respuesta de registro. Para la prueba `403`, usa el token `user1Token`; para la prueba de borrado correcto, usa `adminToken`.
 
-```powershell
-$body = @{
-    email = 'ana@example.com'
-    password = 'una-clave-segura-123'
-} | ConvertTo-Json
+Orden sugerido:
 
-$login = Invoke-RestMethod `
-    -Uri 'http://127.0.0.1:8000/api/login' `
-    -Method Post `
-    -ContentType 'application/json' `
-    -Headers @{ Accept = 'application/json' } `
-    -Body $body
+1. Ejecuta **Health check**.
+2. Ejecuta los tres casos de login y guarda cada `access_token` en la variable indicada.
+3. Ejecuta **Registrar usuario** con un `registeredEmail` nuevo y copia su `user.id` a `userToDeleteId`.
+4. Prueba primero **Eliminar usuario (debe dar 403 a user)** y luego **Eliminar usuario (admin)**. La segunda solicitud borra la cuenta indicada.
+5. Ejecuta **Eliminar usuario inexistente** para probar el caso 404.
+6. Ejecuta logout para invalidar el token de usuario 1. Para seguir usando esa variable, vuelve a iniciar sesión.
 
-Invoke-RestMethod `
-    -Uri 'http://127.0.0.1:8000/api/logout' `
-    -Method Post `
-    -Headers @{
-        Accept = 'application/json'
-        Authorization = "Bearer $($login.access_token)"
-    }
-```
-
-El último comando no muestra contenido si devuelve correctamente `204 No Content`.
+La colección usa las cuentas de demostración `admin@cifpaviles.es`, `user1@cifpaviles.es` y `user2@cifpaviles.es`. Solo funcionarán si se han cargado esos datos con los seeders. Las contraseñas conocidas y los datos demo son para desarrollo: no ejecutes las solicitudes contra producción.
 
 ## Base de datos y datos iniciales
 

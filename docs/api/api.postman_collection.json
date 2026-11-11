@@ -161,6 +161,66 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Administración de usuarios",
+      "description": "Crea una cuenta estándar desde Registrar usuario y copia su id a userToDeleteId. La cuenta de administrador se provisiona fuera del registro público.",
+      "item": [
+        {
+          "name": "Eliminar usuario (debe dar 403 a user)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userToDeleteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userToDeleteId}}"]
+            },
+            "description": "Prueba negativa: un usuario estándar no puede borrar cuentas. Esperado: 403 Problem Details."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar usuario (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userToDeleteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userToDeleteId}}"]
+            },
+            "description": "Esperado: 204 sin cuerpo. Elimina la cuenta y sus datos asociados en cascada. No se permite eliminar al último administrador."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar usuario inexistente (admin, 404)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/999999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "999999999"]
+            },
+            "description": "Prueba negativa: esperado 404 en Problem Details."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

@@ -18,7 +18,7 @@ class UpdateColorRequest extends FormRequest
 
         return [
             'name' => ['required_without:hex_code', 'string', 'max:80', Rule::unique('colors', 'name')->ignore($color)],
-            'hex_code' => ['required_without:name', 'nullable', 'string', 'size:7', 'regex:/^#[0-9A-Fa-f]{6}$/', Rule::unique('colors', 'hex_code')->ignore($color)],
+            'hex_code' => ['required_without:name', 'string', 'size:7', 'regex:/^#[0-9A-Fa-f]{6}$/', Rule::unique('colors', 'hex_code')->ignore($color)],
         ];
     }
 }

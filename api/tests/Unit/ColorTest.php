@@ -143,6 +143,16 @@ class ColorTest extends TestCase
         $color = Color::query()->create(['name' => 'Azul', 'hex_code' => '#0000FF']);
 
         $this->withToken($token)
+            ->postJson('/api/colors', ['name' => 'Rojo'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['hex_code']);
+
+        $this->withToken($token)
+            ->patchJson("/api/colors/{$color->id}", ['name' => 'Azul oscuro', 'hex_code' => null])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['hex_code']);
+
+        $this->withToken($token)
             ->postJson('/api/colors', ['name' => 'Azul', 'hex_code' => 'blue'])
             ->tap(fn ($response) => $this->assertProblemDetails(
                 $response,

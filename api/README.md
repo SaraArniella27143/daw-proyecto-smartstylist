@@ -271,9 +271,9 @@ Accept: application/json
 }
 ```
 
-La respuesta es `201 Created` con el recurso creado dentro de `data`. Para crear un estilo se usan los mismos campos. Para crear un color, envía `name` y opcionalmente `hex_code`, por ejemplo `"#00FF00"`.
+La respuesta es `201 Created` con el recurso creado dentro de `data`. Para crear un estilo se usan los mismos campos. Para crear un color, envía `name` y `hex_code`, por ejemplo `"#00FF00"`.
 
-Para actualizar, usa `PUT` o `PATCH` en la ruta del recurso y envía los campos que quieres cambiar. Las categorías y estilos aceptan `name` y `description`; el color acepta `name` y `hex_code`. La respuesta es `200 OK` con el recurso actualizado en `data`. Debe enviarse al menos un campo. Los nombres son obligatorios al crear, únicos y de hasta 80 caracteres; las descripciones son opcionales y admiten hasta 255 caracteres. `hex_code` es opcional, único y, si se proporciona, debe tener formato `#RRGGBB`.
+Para actualizar, usa `PUT` o `PATCH` en la ruta del recurso y envía los campos que quieres cambiar. Las categorías y estilos aceptan `name` y `description`; el color acepta `name` y `hex_code`. La respuesta es `200 OK` con el recurso actualizado en `data`. Debe enviarse al menos un campo. Los nombres son obligatorios al crear, únicos y de hasta 80 caracteres; las descripciones son opcionales y admiten hasta 255 caracteres. `hex_code` es obligatorio al crear un color; en actualizaciones puede omitirse para conservar el valor actual, pero si se envía debe ser único, no nulo y tener formato `#RRGGBB`.
 
 Eliminar un recurso devuelve `204 No Content`. Si la categoría, el color o el estilo se utiliza en alguna prenda, no se elimina y la API responde `409 Conflict` en formato Problem Details. Un ID inexistente responde `404 Not Found`; la falta de autenticación responde `401 Unauthorized` y un rol distinto de `admin` recibe `403 Forbidden` al intentar modificar.
 

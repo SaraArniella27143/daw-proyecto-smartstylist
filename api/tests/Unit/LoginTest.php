@@ -86,6 +86,33 @@ class LoginTest extends TestCase
         );
     }
 
+    public function test_admin_can_delete_a_user(): void
+    {
+        User::create([
+            'name' => 'Administradora',
+            'email' => 'admin@example.test',
+            'password' => 'clave-segura',
+            'role' => 'admin',
+        ]);
+        $user = User::create([
+            'name' => 'Usuario eliminado',
+            'email' => 'eliminar@example.test',
+            'password' => 'clave-segura',
+            'role' => 'user',
+        ]);
+
+        $token = $this->postJson('/api/login', [
+            'email' => 'admin@example.test',
+            'password' => 'clave-segura',
+        ])->assertOk()->json('access_token');
+
+        $this->withToken($token)
+            ->deleteJson("/api/users/{$user->id}")
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+    }
+
     public function test_demo_user_seeder_uses_a_known_password_in_all_environments_and_is_idempotent(): void
     {
         config(['app.env' => 'production']);

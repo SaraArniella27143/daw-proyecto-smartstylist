@@ -2,7 +2,7 @@
 
 API REST de SmartStylist, construida con Laravel 13 y PHP 8.3. La aplicación usa PostgreSQL para persistir usuarios y datos relacionados con el armario y las sugerencias de conjuntos. La autenticación de la API se realiza con JWT (JSON Web Token).
 
-> **Estado actual:** están implementados el health check y los endpoints de registro, login y logout. Existen tablas y datos iniciales para prendas, categorías, colores, estilos, conjuntos y agenda, pero todavía no hay endpoints HTTP para consultar o modificar esos recursos.
+> **Estado actual:** están disponibles el health check, el registro y autenticación JWT, el borrado de usuarios por administradores y la consulta de los catálogos de categorías, colores y estilos para cualquier usuario autenticado. Los administradores pueden crear, actualizar y eliminar esos catálogos. No hay todavía endpoints HTTP para prendas, conjuntos ni agenda. No se permite eliminar al último administrador ni borrar categorías, colores o estilos asociados a prendas.
 
 ## Requisitos
 
@@ -105,6 +105,19 @@ Todas las solicitudes y respuestas de la API usan JSON. En las peticiones `POST`
 | `POST` | `/api/register` | No | Registra una cuenta estándar y devuelve un JWT. |
 | `POST` | `/api/login` | No | Valida credenciales y devuelve un JWT. |
 | `POST` | `/api/logout` | Sí | Invalida el JWT enviado. |
+| `DELETE` | `/api/users/{id}` | Sí, rol `admin` | Elimina una cuenta por su ID; no permite eliminar al último administrador. |
+| `GET` | `/api/categories`, `/api/categories/{id}` | Sí | Lista o consulta una categoría. |
+| `POST` | `/api/categories` | Sí, rol `admin` | Crea una categoría. |
+| `PUT`, `PATCH` | `/api/categories/{id}` | Sí, rol `admin` | Actualiza una categoría. |
+| `DELETE` | `/api/categories/{id}` | Sí, rol `admin` | Elimina una categoría si no está asociada a prendas. |
+| `GET` | `/api/colors`, `/api/colors/{id}` | Sí | Lista o consulta un color. |
+| `POST` | `/api/colors` | Sí, rol `admin` | Crea un color. |
+| `PUT`, `PATCH` | `/api/colors/{id}` | Sí, rol `admin` | Actualiza un color. |
+| `DELETE` | `/api/colors/{id}` | Sí, rol `admin` | Elimina un color si no está asociado a prendas. |
+| `GET` | `/api/styles`, `/api/styles/{id}` | Sí | Lista o consulta un estilo. |
+| `POST` | `/api/styles` | Sí, rol `admin` | Crea un estilo. |
+| `PUT`, `PATCH` | `/api/styles/{id}` | Sí, rol `admin` | Actualiza un estilo. |
+| `DELETE` | `/api/styles/{id}` | Sí, rol `admin` | Elimina un estilo si no está asociado a prendas. |
 | `GET` | `/up` | No | Health check de Laravel. |
 
 ### Health check de la API
@@ -209,6 +222,61 @@ Accept: application/json
 
 Si el token es válido, devuelve `204 No Content` sin cuerpo e invalida ese JWT. El guard `auth:api` protege la ruta. Si no se incluye un token válido, la API responde `401 Unauthorized`.
 
+### Eliminar usuario
+
+Solo un usuario autenticado con rol `admin` puede eliminar usuarios. Envía el ID numérico de la cuenta en la URL y el JWT de administrador en la cabecera `Authorization`. No se necesita un cuerpo JSON:
+
+```http
+DELETE /api/users/42
+Authorization: Bearer eyJ...<token>...Qss
+Accept: application/json
+```
+
+Si la eliminación se completa, la API responde `204 No Content` sin cuerpo. La ruta devuelve `401 Unauthorized` si el token falta o no es válido y `403 Forbidden` si el usuario autenticado no tiene rol `admin`. Si la cuenta solicitada es el último administrador, no se elimina y se responde `409 Conflict`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "No se puede eliminar al último administrador.",
+  "instance": "/api/users/42"
+}
+```
+
+La eliminación se ejecuta en una transacción y comprueba el número de administradores antes de borrar, para conservar siempre al menos uno.
+
+### Catálogos de categorías, colores y estilos
+
+Las rutas de lectura requieren un JWT válido y están disponibles tanto para `admin` como para `user`. Crear, actualizar o eliminar elementos requiere el rol `admin`. Envía el token en la cabecera `Authorization: Bearer <token>` y utiliza `Accept: application/json`.
+
+Las rutas de listado responden `200 OK` con una propiedad `data` que contiene los elementos ordenados por ID. Las rutas por ID también responden `200 OK` y devuelven el elemento en `data`. Los campos de cada recurso son:
+
+- Categoría y estilo: `id`, `name` y `description`.
+- Color: `id`, `name` y `hex_code`.
+
+Para crear, envía `POST` a la colección. Por ejemplo:
+
+```http
+POST /api/categories
+Authorization: Bearer <token-admin>
+Content-Type: application/json
+Accept: application/json
+```
+
+```json
+{
+  "name": "Calzado",
+  "description": "Prendas para los pies."
+}
+```
+
+La respuesta es `201 Created` con el recurso creado dentro de `data`. Para crear un estilo se usan los mismos campos. Para crear un color, envía `name` y opcionalmente `hex_code`, por ejemplo `"#00FF00"`.
+
+Para actualizar, usa `PUT` o `PATCH` en la ruta del recurso y envía los campos que quieres cambiar. Las categorías y estilos aceptan `name` y `description`; el color acepta `name` y `hex_code`. La respuesta es `200 OK` con el recurso actualizado en `data`. Debe enviarse al menos un campo. Los nombres son obligatorios al crear, únicos y de hasta 80 caracteres; las descripciones son opcionales y admiten hasta 255 caracteres. `hex_code` es opcional, único y, si se proporciona, debe tener formato `#RRGGBB`.
+
+Eliminar un recurso devuelve `204 No Content`. Si la categoría, el color o el estilo se utiliza en alguna prenda, no se elimina y la API responde `409 Conflict` en formato Problem Details. Un ID inexistente responde `404 Not Found`; la falta de autenticación responde `401 Unauthorized` y un rol distinto de `admin` recibe `403 Forbidden` al intentar modificar.
+
 ### Errores de validación
 
 Los errores de validación devuelven `422 Unprocessable Content` con formato `application/problem+json`. El objeto `errors` identifica los campos con problemas:
@@ -229,60 +297,42 @@ Los errores de validación devuelven `422 Unprocessable Content` con formato `ap
 
 Los mensajes de validación de Laravel están actualmente en inglés; los mensajes generales de autenticación están en español.
 
-## Ejemplos desde PowerShell
+## Probar la API con Postman
 
-Comprobar el health check:
+La colección [SmartStylist API](../docs/api/api.postman_collection.json) contiene solicitudes listas para importar. En Postman, selecciona **Import**, elige **Files** y abre `docs/api/api.postman_collection.json` del repositorio. La colección usa `http://localhost:8000` como `baseUrl` inicial; cámbiala en las variables de la colección si el servidor escucha en otra dirección o puerto.
 
-```powershell
-Invoke-RestMethod -Uri 'http://127.0.0.1:8000/api/health'
-```
+La colección cubre autenticación y health checks, eliminación de usuarios y operaciones sobre los catálogos de categorías, estilos y colores. Incluye pruebas de permisos, validación, recursos inexistentes y conflictos:
 
-Registrar un usuario:
+| Grupo | Solicitud | Resultado esperado |
+|---|---|---|
+| Autenticación | Health checks, registro, login y logout | Comprueba estado, obtiene tokens y los invalida. |
+| Administración de usuarios | Eliminar usuario como estándar, administrador y usuario inexistente | Comprueba `403 Forbidden`, `204 No Content` y `404 Not Found`. |
+| Catálogos | Listar y consultar categorías, estilos y colores | `200 OK` con los recursos dentro de `data`. |
+| Catálogos | Crear, reemplazar, actualizar parcialmente y eliminar como administrador | Comprueba las operaciones CRUD de cada catálogo. |
+| Catálogos | Intentar modificar como usuario estándar | `403 Forbidden`. |
+| Catálogos | Enviar datos inválidos o consultar un ID inexistente | Comprueba los errores `422 Unprocessable Content` y `404 Not Found`. |
 
-```powershell
-$body = @{
-    name = 'Ana García'
-    email = 'ana@example.com'
-    password = 'una-clave-segura-123'
-    password_confirmation = 'una-clave-segura-123'
-} | ConvertTo-Json
+### Variables y orden recomendado
 
-$registro = Invoke-RestMethod `
-    -Uri 'http://127.0.0.1:8000/api/register' `
-    -Method Post `
-    -ContentType 'application/json' `
-    -Headers @{ Accept = 'application/json' } `
-    -Body $body
+La colección ya define `baseUrl`, las contraseñas demo y las variables donde guardar tokens (`adminToken`, `user1Token`, `user2Token`). También incluye `categoryId`, `styleId` y `colorId` para las operaciones sobre catálogos. No tiene scripts que copien automáticamente tokens ni IDs: copia los valores de las respuestas y actualiza las variables desde **Edit collection → Variables**.
 
-$token = $registro.access_token
-$token
-```
+La colección también define estas variables, que debes completar antes de ejecutar las solicitudes correspondientes:
 
-Iniciar sesión y cerrar sesión:
+- `registeredEmail`: una dirección de correo todavía no registrada. Cámbiala cada vez que repitas el registro, ya que el correo debe ser único.
+- `userToDeleteId`: el ID numérico de un usuario que quieras eliminar. Para probar el caso positivo, crea primero una cuenta estándar y copia su `user.id` de la respuesta de registro. Para la prueba `403`, usa el token `user1Token`; para la prueba de borrado correcto, usa `adminToken`.
+- `categoryId`, `styleId` y `colorId`: los IDs de los recursos que quieras consultar, actualizar o eliminar. Después de crear un recurso, copia su `data.id` a la variable correspondiente.
 
-```powershell
-$body = @{
-    email = 'ana@example.com'
-    password = 'una-clave-segura-123'
-} | ConvertTo-Json
+Orden sugerido:
 
-$login = Invoke-RestMethod `
-    -Uri 'http://127.0.0.1:8000/api/login' `
-    -Method Post `
-    -ContentType 'application/json' `
-    -Headers @{ Accept = 'application/json' } `
-    -Body $body
+1. Ejecuta **Health check**.
+2. Ejecuta los tres casos de login y guarda cada `access_token` en la variable indicada.
+3. Ejecuta **Registrar usuario** con un `registeredEmail` nuevo y copia su `user.id` a `userToDeleteId`.
+4. Prueba primero **Eliminar usuario (debe dar 403 a user)** y luego **Eliminar usuario (admin)**. La segunda solicitud borra la cuenta indicada.
+5. Ejecuta **Eliminar usuario inexistente** para probar el caso 404.
+6. Ejecuta logout para invalidar el token de usuario 1. Para seguir usando esa variable, vuelve a iniciar sesión.
+7. Para probar cada catálogo, crea un recurso como administrador y copia su ID a la variable correspondiente antes de ejecutar las solicitudes de consulta, actualización o borrado.
 
-Invoke-RestMethod `
-    -Uri 'http://127.0.0.1:8000/api/logout' `
-    -Method Post `
-    -Headers @{
-        Accept = 'application/json'
-        Authorization = "Bearer $($login.access_token)"
-    }
-```
-
-El último comando no muestra contenido si devuelve correctamente `204 No Content`.
+La colección usa las cuentas de demostración `admin@cifpaviles.es`, `user1@cifpaviles.es` y `user2@cifpaviles.es`. Solo funcionarán si se han cargado esos datos con los seeders. Las contraseñas conocidas y los datos demo son para desarrollo: no ejecutes las solicitudes contra producción.
 
 ## Base de datos y datos iniciales
 

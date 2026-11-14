@@ -750,6 +750,361 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Prendas",
+      "description": "CRUD personal de prendas. Inicia sesión como user1/user2 antes de ejecutar. Copia manualmente IDs de las respuestas en las variables garmentId, user1GarmentId y user2GarmentId.",
+      "item": [
+        {
+          "name": "Listar mis prendas (user 1)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 200 y solo prendas de user1. Con seeders, incluye «Camiseta blanca de algodón»; guarda uno de sus id en user1GarmentId."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar mis prendas (user 2)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 200 y solo prendas de user2. Con seeders, incluye «Camisa negra»; guarda uno de sus id en user2GarmentId."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear prenda propia",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"color_id\": 1,\n  \"style_id\": 1,\n  \"name\": \"Prenda creada desde Postman\",\n  \"season\": \"summer\",\n  \"image_url\": \"https://example.test/prenda.jpg\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 201. Los IDs 1 son las categorías, colores y estilos de ejemplo después de db:reset. Copia data.id de la respuesta en garmentId para probar show/update/delete."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear prenda con campos opcionales nulos",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"color_id\": 1,\n  \"style_id\": null,\n  \"name\": \"Prenda sin estilo ni imagen\",\n  \"season\": \"year_round\",\n  \"image_url\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 201; style_id e image_url son opcionales y aceptan null."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar mi prenda",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{garmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{garmentId}}"]
+            },
+            "description": "Esperado: 200 con la prenda y sus relaciones de categoría, color y estilo."
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar mi prenda (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prenda actualizada desde Postman\",\n  \"season\": \"winter\",\n  \"style_id\": null,\n  \"image_url\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{garmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{garmentId}}"]
+            },
+            "description": "Esperado: 200. PATCH permite enviar únicamente los campos a modificar."
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar mi prenda (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"color_id\": 1,\n  \"style_id\": 1,\n  \"name\": \"Prenda reemplazada desde Postman\",\n  \"season\": \"spring\",\n  \"image_url\": \"https://example.test/prenda-actualizada.jpg\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{garmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{garmentId}}"]
+            },
+            "description": "Esperado: 200. PUT requiere todos los campos obligatorios category_id, color_id, name y season."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar mi prenda",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{garmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{garmentId}}"]
+            },
+            "description": "Esperado: 204 sin cuerpo. Ejecuta solo después de comprobar las peticiones show/update."
+          },
+          "response": []
+        },
+        {
+          "name": "Prueba 401 sin token",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "noauth" },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 401 con Content-Type application/problem+json."
+          },
+          "response": []
+        },
+        {
+          "name": "Prueba 404 prenda inexistente",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "0"]
+            },
+            "description": "Esperado: 404 Problem Details."
+          },
+          "response": []
+        },
+        {
+          "name": "Prueba 422 temporada y referencias inválidas",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 999,\n  \"color_id\": 999,\n  \"style_id\": 999,\n  \"name\": \"Prenda inválida\",\n  \"season\": \"fall\",\n  \"image_url\": \"no-es-una-url\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 422 Problem Details; categoría, color, estilo, temporada y URL fallan validación."
+          },
+          "response": []
+        },
+        {
+          "name": "Prueba 422 no se permite user_id",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"category_id\": 1,\n  \"color_id\": 1,\n  \"name\": \"No se debe suplantar propietario\",\n  \"season\": \"summer\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 422. El propietario se obtiene exclusivamente del JWT."
+          },
+          "response": []
+        },
+        {
+          "name": "BOLA - usuario 2 consulta prenda de usuario 1",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{user1GarmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{user1GarmentId}}"]
+            },
+            "description": "Primero inicia sesión como user1, lista sus prendas y copia un ID en user1GarmentId. Luego usa el token de user2. Esperado: 404 sin revelar la prenda."
+          },
+          "response": []
+        },
+        {
+          "name": "BOLA - usuario 2 modifica prenda de usuario 1",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Intento de modificación ajena\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{user1GarmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{user1GarmentId}}"]
+            },
+            "description": "Con user2Token y un ID perteneciente a user1, debe responder 404. Después puedes consultar la prenda como user1 para confirmar que no cambió."
+          },
+          "response": []
+        },
+        {
+          "name": "BOLA - usuario 2 reemplaza prenda de usuario 1",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"color_id\": 1,\n  \"name\": \"Intento de reemplazo ajeno\",\n  \"season\": \"summer\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{user1GarmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{user1GarmentId}}"]
+            },
+            "description": "Con user2Token y un ID perteneciente a user1, debe responder 404. El cuerpo es válido para que la prueba mida ownership y no validación."
+          },
+          "response": []
+        },
+        {
+          "name": "BOLA - usuario 2 elimina prenda de usuario 1",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{user1GarmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{user1GarmentId}}"]
+            },
+            "description": "Con user2Token y un ID perteneciente a user1, debe responder 404 y la prenda debe seguir existiendo para user1."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

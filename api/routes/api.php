@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ColorController;
 use App\Http\Controllers\Api\StyleController;
-
+use App\Http\Controllers\Api\GarmentController;
 
 Route::get('/health', fn () => response()->json(['status' => 'ok']));
 Route::post('/login', [AuthController::class, 'login']);
@@ -21,6 +21,13 @@ Route::middleware('auth:api')->group(function (): void {
     Route::get('/styles/{style}', [StyleController::class, 'show'])->whereNumber('style');
     Route::get('/colors', [ColorController::class, 'index']);
     Route::get('/colors/{color}', [ColorController::class, 'show'])->whereNumber('color');
+
+    Route::get('/garments', [GarmentController::class, 'index']);
+    Route::post('/garments', [GarmentController::class, 'store']);
+    Route::get('/garments/{garment}', [GarmentController::class, 'show'])->whereNumber('garment');
+    Route::put('/garments/{garment}', [GarmentController::class, 'update'])->whereNumber('garment');
+    Route::patch('/garments/{garment}', [GarmentController::class, 'update'])->whereNumber('garment');
+    Route::delete('/garments/{garment}', [GarmentController::class, 'destroy'])->whereNumber('garment');
 
     Route::middleware('role:admin')->group(function (): void {
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->whereNumber('user');

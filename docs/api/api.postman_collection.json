@@ -1105,6 +1105,188 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Outfits",
+      "description": "Gestión de outfits. Copia manualmente IDs de las respuestas en outfitId y user1OutfitId.",
+      "item": [
+        {
+          "name": "Crear outfit (user 1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Outfit desde Postman\",\n  \"description\": \"Conjunto de prueba\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits"]
+            },
+            "description": "Esperado: 201 y data.is_complete=false. Copia data.id en outfitId y user1OutfitId."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar mis outfits (user 1)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits"]
+            },
+            "description": "Esperado: 200 y solo outfits del usuario autenticado."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar mi outfit",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/{{outfitId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "{{outfitId}}"]
+            },
+            "description": "Esperado: 200 con las prendas y sus atributos is_primary/note."
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar mi outfit",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Outfit actualizado desde Postman\",\n  \"description\": \"Descripción modificada\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/{{outfitId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "{{outfitId}}"]
+            },
+            "description": "Esperado: 200. PATCH permite enviar solo los campos que se desean modificar."
+          },
+          "response": []
+        },
+        {
+          "name": "Reemplazar prendas de mi outfit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"garments\": [\n    {\n      \"garment_id\": {{user1GarmentId}},\n      \"is_primary\": true,\n      \"note\": \"Prenda principal\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/{{outfitId}}/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "{{outfitId}}", "garments"]
+            },
+            "description": "Esperado: 200 y data.is_complete=true. Reemplaza la asociación completa; garments: [] la vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "BOLA - user 2 consulta outfit de user 1",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/{{user1OutfitId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "{{user1OutfitId}}"]
+            },
+            "description": "Con user2Token y un ID guardado por user1, esperado: 404 sin revelar información."
+          },
+          "response": []
+        },
+        {
+          "name": "Rechazar prenda de otro usuario",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"garments\": [\n    {\n      \"garment_id\": {{user2GarmentId}},\n      \"is_primary\": true\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/{{outfitId}}/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "{{outfitId}}", "garments"]
+            },
+            "description": "Esperado: 422; primero lista prendas como user2 para guardar user2GarmentId. La asociación actual debe permanecer intacta."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar mi outfit",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/{{outfitId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "{{outfitId}}"]
+            },
+            "description": "Esperado: 204 sin cuerpo."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

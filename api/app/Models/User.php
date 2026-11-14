@@ -38,4 +38,9 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(Garment::class);
     }
+
+    public function outfits(): HasMany
+    {
+        return $this->hasMany(Outfit::class);
+    }
 }

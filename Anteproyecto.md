@@ -24,18 +24,86 @@ Contexto de uso: Se utiliza de forma cotidiana desde dispositivos móviles u ord
 
  --- 
 ## 2. Roles del sistema y casos de uso 
-### 2.1. Matriz de roles (RBAC) 
-- **Administrador:** Control total de la plataforma. Gestiona los catálogos maestros de estilos, colores, tipos de prendas y tendencias globales, además de supervisar cuentas de usuario y métricas de uso del sistema.
-- **Usuario registrado:** Funcionalidad principal del sistema. Sube y escanea sus prendas, crea y guarda conjuntos/outfits favoritos, recibe sugerencias automáticas de combinación y planifica su calendario de estilismos.
-- **Público / invitado:** Visitantes no autenticados que pueden explorar la página de presentación de la aplicación, ver ejemplos de cómo funciona el asistente y acceder a los formularios de registro o inicio de sesión.
+### 2.1. Matriz de control de acceso (RBAC)
+
+El sistema aplica el control de acceso según el rol autenticado. El usuario y el administrador solo acceden a sus propios recursos personales; el administrador gestiona además los catálogos compartidos.
+
+| Operación | Público | Usuario | Admin |
+|---|---|---|---|
+| Consultar la página pública y los formularios de autenticación | Sí | Sí | Sí |
+| Registrar una cuenta | Sí | No | No |
+| Iniciar sesión | Sí | Sí | Sí |
+| Gestionar prendas y outfits propios | No | Sí, solo recursos propios | Sí, solo recursos propios |
+| Generar sugerencias para el armario propio | No | Sí | Sí |
+| Planificar outfits y consultar estadísticas propias | No | Sí, solo recursos propios | Sí, solo recursos propios |
+| Crear, modificar y eliminar categorías, colores y estilos compartidos | No | No | Sí |
+| Consultar o modificar prendas y outfits de otros usuarios | No | No | No |
 
 ### 2.2. Casos de uso principales
-1. **CU-01:** Registro e inicio de sesión seguro de usuarios con autenticación basada en tokens JWT.
-2. **CU-02:** Subida, escaneo y gestión del inventario personal de prendas (CRUD de armario: categoría, color, temporada, estilo).
-3. **CU-03:** Generación automática o manual de sugerencias y outfits combinando las prendas del usuario.
-4. **CU-04:** Planificador semanal de estilismos (asignar un outfit a un día concreto del calendario).
-5. **CU-05:** Gestión y mantenimiento del catálogo maestro de estilos y etiquetas por parte del administrador.
-6. **CU-06:** Visualización de estadísticas de uso del armario (prendas más usadas, menos utilizadas o combinaciones frecuentes).
+
+#### CU-01: Registro e inicio de sesión
+
+**Actor principal:** Público (visitante no autenticado).
+
+**Flujo principal:**
+1. El visitante selecciona el registro o el inicio de sesión.
+2. Para registrarse, el visitante introduce su nombre, correo electrónico y contraseña.
+3. El sistema valida los datos y crea la cuenta con el rol estándar de usuario.
+
+**Flujo alternativo (inicio de sesión):**
+1. El visitante introduce las credenciales de una cuenta existente.
+2. El sistema valida las credenciales y emite un token JWT válido.
+
+#### CU-02: Gestión del inventario de prendas
+
+**Actor principal:** Usuario autenticado.
+
+**Flujo principal:**
+1. El usuario solicita consultar, registrar, actualizar o eliminar una prenda.
+2. Para registrar o actualizar una prenda, el usuario proporciona sus datos, incluidos la categoría, el color y la temporada; también puede indicar un estilo y una URL de imagen.
+3. El sistema valida los datos y comprueba que la prenda pertenece al usuario cuando la operación afecta a una prenda existente.
+4. El sistema guarda los cambios o devuelve los datos solicitados, siempre dentro del armario del usuario.
+
+#### CU-03: Generación de sugerencias y gestión de outfits
+
+**Actor principal:** Usuario autenticado.
+
+**Flujo principal:**
+1. El usuario solicita sugerencias e indica una temporada; también puede seleccionar un color y un estilo.
+2. El sistema filtra las prendas propias por la temporada solicitada o por la opción de todo el año y aplica los filtros de color y estilo cuando se indican.
+3. El sistema combina una prenda superior con una inferior o propone un vestido como prenda principal. También añade, cuando existen y cumplen los filtros, hasta un calzado, un abrigo y un accesorio.
+4. El sistema devuelve las sugerencias sin guardarlas como outfits.
+5. Cuando el usuario decide guardar una sugerencia, el sistema registra el outfit y sus prendas asociadas.
+
+**Flujo alternativo:** El usuario selecciona prendas propias para crear un outfit manualmente. El sistema valida la propiedad de las prendas y guarda el outfit cuando el usuario confirma la operación.
+
+#### CU-04: Planificación de outfits
+
+**Actor principal:** Usuario autenticado.
+
+**Flujo principal:**
+1. El usuario selecciona uno de sus outfits completos y una fecha del calendario.
+2. El sistema comprueba que el outfit pertenece al usuario y que está completo.
+3. El sistema registra la planificación y confirma la fecha asignada.
+
+#### CU-05: Registro de uso y consulta de estadísticas
+
+**Actor principal:** Usuario autenticado.
+
+**Flujo principal:**
+1. El usuario registra el uso de uno de sus outfits e indica cuándo lo utiliza.
+2. El sistema comprueba que el outfit pertenece al usuario y registra el evento de uso.
+3. El usuario solicita las estadísticas de su armario.
+4. El sistema calcula las estadísticas a partir del historial de uso y las muestra al usuario.
+
+#### CU-06: Gestión de catálogos compartidos
+
+**Actor principal:** Administrador autenticado.
+
+**Flujo principal:**
+1. El administrador solicita crear, modificar o eliminar una categoría, un color o un estilo.
+2. El sistema comprueba el rol del administrador y valida los datos y las restricciones de unicidad.
+3. El sistema guarda el cambio y devuelve su resultado. Si una prenda utiliza el elemento, el sistema impide su eliminación.
 
 ### 2.3. Alcance del MVP 
 - **Incluido:** Sistema de autenticación, interfaz para subir prendas y catalogarlas (con subida de imágenes), motor básico de filtrado y sugerencias de combinación basadas en etiquetas de color/estilo, calendario semanal de outfits y panel básico de administración. - **Fuera del MVP:** Reconocimiento de prendas mediante Inteligencia Artificial, o la integración con tiendas externas para sugerir compras complementarias (quedan para add-ons o versiones futuras). 

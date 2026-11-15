@@ -41,6 +41,7 @@ class OutfitTest extends TestCase
             $table->id();
             $table->string('name', 80)->unique();
             $table->string('description', 255)->nullable();
+            $table->string('outfit_group', 20)->default('optional');
             $table->timestamps();
         });
 
@@ -86,7 +87,10 @@ class OutfitTest extends TestCase
             $table->primary(['outfit_id', 'garment_id']);
         });
 
-        Category::query()->create(['name' => 'Camisetas']);
+        Category::query()->create([
+            'name' => 'Camisetas',
+            'outfit_group' => 'upper_body',
+        ]);
         Color::query()->create(['name' => 'Blanco', 'hex_code' => '#FFFFFF']);
         Style::query()->create(['name' => 'Casual']);
     }
@@ -339,6 +343,142 @@ class OutfitTest extends TestCase
             ->assertJsonValidationErrors(['name']);
     }
 
+    public function test_suggestions_use_only_compatible_owned_garments_and_are_not_persisted(): void
+    {
+        $token = $this->tokenFor('owner@example.test');
+        $owner = User::query()->where('email', 'owner@example.test')->firstOrFail();
+        $this->createGarmentFor($owner, 'Camiseta', 'Camisetas', 'summer');
+        $this->createGarmentFor($owner, 'Pantalón', 'Pantalones', 'year_round');
+        $this->createGarmentFor($owner, 'Accesorio', 'Accesorios', 'year_round');
+        $this->createGarmentFor($owner, 'Vestido fuera de temporada', 'Vestidos', 'autumn');
+
+        $otherUser = User::query()->create([
+            'name' => 'Otro usuario',
+            'email' => 'other@example.test',
+            'password' => 'password',
+            'role' => 'user',
+        ]);
+        $this->createGarmentFor($otherUser, 'Camiseta ajena', 'Camisetas', 'summer');
+
+        $garmentCount = Garment::query()->count();
+        $outfitCount = Outfit::query()->count();
+        $pivotCount = DB::table('outfit_garments')->count();
+
+        $response = $this->withToken($token)
+            ->getJson('/api/outfits/suggestions?season=summer')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.is_complete', true)
+            ->assertJsonCount(3, 'data.0.garments')
+            ->assertJsonPath('data.0.garments.0.is_primary', true);
+
+        $suggestedGarmentIds = collect($response->json('data.0.garments'))->pluck('id')->all();
+        $this->assertCount(3, $suggestedGarmentIds);
+        $this->assertNotContains(Garment::query()->where('name', 'Camiseta ajena')->value('id'), $suggestedGarmentIds);
+        $this->assertNotContains(Garment::query()->where('name', 'Vestido fuera de temporada')->value('id'), $suggestedGarmentIds);
+        $this->assertSame($garmentCount, Garment::query()->count());
+        $this->assertSame($outfitCount, Outfit::query()->count());
+        $this->assertSame($pivotCount, DB::table('outfit_garments')->count());
+    }
+
+    public function test_suggestions_validate_season_filters_and_limit(): void
+    {
+        $token = $this->tokenFor('owner@example.test');
+        $owner = User::query()->where('email', 'owner@example.test')->firstOrFail();
+        $defaultColor = Color::query()->firstOrFail();
+        $defaultStyle = Style::query()->firstOrFail();
+        $otherColor = Color::query()->create(['name' => 'Rojo', 'hex_code' => '#FF0000']);
+        $category = Category::query()->firstOrFail();
+
+        Garment::query()->create([
+            'user_id' => $owner->id,
+            'category_id' => $category->id,
+            'color_id' => $otherColor->id,
+            'style_id' => $defaultStyle->id,
+            'name' => 'Camiseta de otro color',
+            'season' => 'spring',
+        ]);
+        $this->createGarmentFor($owner, 'Camiseta compatible');
+        $this->createGarmentFor($owner, 'Pantalón compatible', 'Pantalones');
+
+        $this->withToken($token)
+            ->getJson("/api/outfits/suggestions?season=spring&color_id={$defaultColor->id}&style_id={$defaultStyle->id}&limit=1")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonCount(2, 'data.0.garments')
+            ->assertJsonPath('data.0.garments.0.color.id', $defaultColor->id)
+            ->assertJsonPath('data.0.garments.1.color.id', $defaultColor->id)
+            ->assertJsonPath('data.0.garments.0.style.id', $defaultStyle->id)
+            ->assertJsonPath('data.0.garments.1.style.id', $defaultStyle->id);
+
+        $this->withToken($token)
+            ->getJson('/api/outfits/suggestions?season=year_round')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['season']);
+
+        $this->withToken($token)
+            ->getJson('/api/outfits/suggestions?season=summer&color_id=999&style_id=999&limit=11')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['color_id', 'style_id', 'limit']);
+    }
+
+    public function test_suggestions_use_category_groups_and_vary_optional_garments(): void
+    {
+        $token = $this->tokenFor('owner@example.test');
+        $owner = User::query()->where('email', 'owner@example.test')->firstOrFail();
+
+        foreach ([1, 2] as $number) {
+            $this->createGarmentFor($owner, "Camiseta de verano {$number}", 'Camisetas', 'summer');
+            $this->createGarmentFor($owner, "Pantalón de verano {$number}", 'Pantalones', 'summer');
+            $this->createGarmentFor($owner, "Vestido de verano {$number}", 'Vestidos', 'summer');
+            $this->createGarmentFor($owner, "Calzado {$number}", 'Calzado', 'summer');
+        }
+
+        $summerSuggestions = $this->withToken($token)
+            ->getJson('/api/outfits/suggestions?season=summer&limit=4')
+            ->assertOk()
+            ->assertJsonCount(4, 'data')
+            ->json('data');
+
+        $summerCategories = collect($summerSuggestions)->map(
+            fn (array $suggestion) => collect($suggestion['garments'])->pluck('category.name')
+        );
+        $this->assertTrue($summerCategories->contains(fn ($categories) => $categories->contains('Vestidos')));
+        $this->assertTrue($summerCategories->contains(
+            fn ($categories) => $categories->contains('Camisetas') && $categories->contains('Pantalones')
+        ));
+
+        $summerShoeIds = collect($summerSuggestions)->map(function (array $suggestion): ?int {
+            foreach ($suggestion['garments'] as $garment) {
+                if ($garment['category']['name'] === 'Calzado') {
+                    return (int) $garment['id'];
+                }
+            }
+
+            return null;
+        })->filter()->unique();
+        $this->assertCount(2, $summerShoeIds);
+
+        foreach ([1, 2] as $number) {
+            $this->createGarmentFor($owner, "Camiseta de invierno {$number}", 'Camisetas', 'winter');
+            $this->createGarmentFor($owner, "Pantalón de invierno {$number}", 'Pantalones', 'winter');
+        }
+
+        $this->createGarmentFor($owner, 'Abrigo de invierno', 'Abrigos', 'winter');
+
+        $winterSuggestions = $this->withToken($token)
+            ->getJson('/api/outfits/suggestions?season=winter&limit=2')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->json('data');
+
+        foreach ($winterSuggestions as $suggestion) {
+            $this->assertTrue(collect($suggestion['garments'])->contains(
+                fn (array $garment) => $garment['category']['name'] === 'Abrigos'
+            ));
+        }
+    }
+
     private function tokenFor(string $email): string
     {
         User::query()->create([
@@ -360,7 +500,16 @@ class OutfitTest extends TestCase
         string $categoryName = 'Camisetas',
         string $season = 'spring',
     ): Garment {
-        $category = Category::query()->firstOrCreate(['name' => $categoryName]);
+        $outfitGroup = match ($categoryName) {
+            'Camisetas', 'Camisas', 'Prendas de punto' => 'upper_body',
+            'Pantalones', 'Faldas', 'Pantalones cortos' => 'lower_body',
+            'Vestidos' => 'full_body',
+            default => 'optional',
+        };
+        $category = Category::query()->firstOrCreate(
+            ['name' => $categoryName],
+            ['outfit_group' => $outfitGroup],
+        );
 
         return Garment::query()->create([
             'user_id' => $user->id,

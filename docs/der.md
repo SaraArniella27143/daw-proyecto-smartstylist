@@ -30,6 +30,7 @@ erDiagram
         BIGINT id PK
         VARCHAR name UK
         VARCHAR description
+        VARCHAR outfit_group
     }
 
     colors {

@@ -38,6 +38,7 @@ Route::middleware('auth:api')->group(function (): void {
     Route::delete('/outfits/{outfit}', [OutfitController::class, 'destroy'])->whereNumber('outfit');
     Route::put('/outfits/{outfit}/garments', [OutfitController::class, 'replaceGarments'])->whereNumber('outfit');
 
+    Route::get('/outfits/suggestions', [OutfitController::class, 'suggestions']);
 
 
     Route::middleware('role:admin')->group(function (): void {

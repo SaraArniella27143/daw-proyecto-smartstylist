@@ -20,6 +20,7 @@ class UpdateCategoryRequest extends FormRequest
         return [
             'name' => ['sometimes', 'required', 'string', 'max:80', Rule::unique('categories', 'name')->ignore($category)],
             'description' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'outfit_group' => ['sometimes', 'required', 'string', Rule::in(['upper_body', 'lower_body', 'full_body', 'optional'])],
         ];
     }
 

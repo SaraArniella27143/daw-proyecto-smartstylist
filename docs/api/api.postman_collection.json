@@ -228,7 +228,7 @@
       "item": [
         {
           "name": "Categorias",
-          "description": "CRUD de categorias. Las lecturas requieren autenticacion; crear, actualizar y eliminar requieren token admin.",
+          "description": "CRUD de categorias. outfit_group es obligatorio al crear y admite upper_body, lower_body, full_body u optional. Las lecturas requieren autenticacion; crear, actualizar y eliminar requieren token admin.",
           "item": [
             {
               "name": "Listar categorias",
@@ -282,7 +282,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Categoria Postman\",\n  \"description\": \"Categoria de ejemplo.\"\n}",
+                  "raw": "{\n  \"name\": \"Categoria Postman\",\n  \"description\": \"Categoria de ejemplo.\",\n  \"outfit_group\": \"optional\"\n}",
                   "options": {
                     "raw": { "language": "json" }
                   }
@@ -307,7 +307,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Categoria no autorizada\",\n  \"description\": \"Prueba de permisos.\"\n}",
+                  "raw": "{\n  \"name\": \"Categoria no autorizada\",\n  \"description\": \"Prueba de permisos.\",\n  \"outfit_group\": \"optional\"\n}",
                   "options": {
                     "raw": { "language": "json" }
                   }
@@ -332,7 +332,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Categoria Postman updated\",\n  \"description\": \"Categoria de ejemplo.\"\n}",
+                  "raw": "{\n  \"name\": \"Categoria Postman updated\",\n  \"description\": \"Categoria de ejemplo.\",\n  \"outfit_group\": \"optional\"\n}",
                   "options": {
                     "raw": { "language": "json" }
                   }
@@ -1283,6 +1283,28 @@
               "path": ["api", "outfits", "{{outfitId}}"]
             },
             "description": "Esperado: 204 sin cuerpo."
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener sugerencias para verano",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/suggestions?season=summer&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "suggestions"],
+              "query": [
+                { "key": "season", "value": "summer" },
+                { "key": "limit", "value": "5" }
+              ]
+            },
+            "description": "Esperado: 200. Combina prendas de la temporada solicitada o year_round según el outfit_group de su categoría. Alterna vestidos y conjuntos de dos piezas cuando hay opciones y puede añadir una prenda del grupo optional. Las prendas se eligen entre las disponibles, por lo que las sugerencias pueden variar. color_id y style_id, si se envían, filtran las prendas del conjunto. Las sugerencias no se guardan automáticamente y la respuesta puede estar vacía."
           },
           "response": []
         }

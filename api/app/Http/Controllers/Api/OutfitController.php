@@ -6,7 +6,9 @@ use App\Http\Requests\ReplaceOutfitGarmentsRequest;
 use App\Http\Requests\StoreOutfitRequest;
 use App\Http\Requests\UpdateOutfitRequest;
 use App\Http\Resources\OutfitResource;
+use App\Http\Requests\SuggestOutfitsRequest;
 use App\Services\OutfitService;
+use App\Services\OutfitSuggestionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,6 +16,7 @@ class OutfitController extends ApiController
 {
     public function __construct(
         private readonly OutfitService $outfitService,
+        private readonly OutfitSuggestionService $suggestionService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -63,5 +66,20 @@ class OutfitController extends ApiController
         return new OutfitResource(
             $this->outfitService->replaceGarments($user, $outfit, $attributes['garments'])
         );
+    }
+
+    public function suggestions(SuggestOutfitsRequest $request): JsonResponse
+    {
+        $attributes = $request->validated();
+
+        return response()->json([
+            'data' => $this->suggestionService->suggestForUser(
+                $this->authenticatedUser($request),
+                $attributes['season'],
+                $attributes['color_id'] ?? null,
+                $attributes['style_id'] ?? null,
+                $attributes['limit'] ?? 5,
+            ),
+        ]);
     }
 }

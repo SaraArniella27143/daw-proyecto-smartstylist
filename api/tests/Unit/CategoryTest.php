@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -31,12 +32,15 @@ class CategoryTest extends TestCase
             $table->timestamps();
         });
 
-        Schema::create('categories', function (Blueprint $table): void {
-            $table->id();
-            $table->string('name', 80)->unique();
-            $table->string('description', 255)->nullable();
-            $table->timestamps();
-        });
+        DB::statement("CREATE TABLE categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name VARCHAR(80) NOT NULL UNIQUE,
+            description VARCHAR(255) NULL,
+            outfit_group VARCHAR(20) NOT NULL DEFAULT 'optional'
+                CHECK (outfit_group IN ('upper_body', 'lower_body', 'full_body', 'optional')),
+            created_at DATETIME NULL,
+            updated_at DATETIME NULL
+        )");
 
         Schema::create('garments', function (Blueprint $table): void {
             $table->id();
@@ -50,10 +54,15 @@ class CategoryTest extends TestCase
         $token = $this->tokenFor('admin');
 
         $categoryResponse = $this->withToken($token)
-            ->postJson('/api/categories', ['name' => 'Calzado', 'description' => 'Prendas para los pies.'])
+            ->postJson('/api/categories', [
+                'name' => 'Calzado',
+                'description' => 'Prendas para los pies.',
+                'outfit_group' => 'optional',
+            ])
             ->assertCreated()
             ->assertJsonPath('data.name', 'Calzado')
-            ->assertJsonPath('data.description', 'Prendas para los pies.');
+            ->assertJsonPath('data.description', 'Prendas para los pies.')
+            ->assertJsonPath('data.outfit_group', 'optional');
         $categoryId = $categoryResponse->json('data.id');
 
         $this->withToken($token)
@@ -127,7 +136,10 @@ class CategoryTest extends TestCase
         $category = Category::query()->create(['name' => 'Calzado']);
 
         $this->withToken($token)
-            ->postJson('/api/categories', ['name' => 'Calzado'])
+            ->postJson('/api/categories', [
+                'name' => 'Calzado',
+                'outfit_group' => 'optional',
+            ])
             ->tap(fn ($response) => $this->assertProblemDetails(
                 $response,
                 422,
@@ -135,6 +147,14 @@ class CategoryTest extends TestCase
                 'Los datos enviados no superan la validación.',
             ))
             ->assertJsonValidationErrors(['name']);
+
+        $this->withToken($token)
+            ->postJson('/api/categories', [
+                'name' => 'Categoria invalida',
+                'outfit_group' => 'not_a_group',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['outfit_group']);
 
         $this->withToken($token)
             ->putJson("/api/categories/{$category->id}", ['name' => ''])
@@ -145,6 +165,16 @@ class CategoryTest extends TestCase
                 'Los datos enviados no superan la validación.',
             ))
             ->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_database_rejects_unknown_outfit_groups(): void
+    {
+        $this->expectException(QueryException::class);
+
+        Category::query()->create([
+            'name' => 'Categoria invalida',
+            'outfit_group' => 'not_a_group',
+        ]);
     }
 
     public function test_category_catalog_requires_authentication(): void

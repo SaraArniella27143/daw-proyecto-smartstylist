@@ -37,6 +37,7 @@ class GarmentTest extends TestCase
             $table->id();
             $table->string('name', 80)->unique();
             $table->string('description', 255)->nullable();
+            $table->string('outfit_group', 20)->default('optional');
             $table->timestamps();
         });
 
@@ -283,7 +284,10 @@ class GarmentTest extends TestCase
 
     private function seedCatalogs(): void
     {
-        Category::query()->create(['name' => 'Camisetas']);
+        Category::query()->create([
+            'name' => 'Camisetas',
+            'outfit_group' => 'upper_body',
+        ]);
         Color::query()->create(['name' => 'Blanco', 'hex_code' => '#FFFFFF']);
         Style::query()->create(['name' => 'Casual']);
     }

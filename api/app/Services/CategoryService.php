@@ -18,7 +18,7 @@ class CategoryService
     }
 
     /**
-     * @param  array{name: string, description?: string|null}  $attributes
+     * @param  array{name: string, description?: string|null, outfit_group: string}  $attributes
      */
     public function createCategory(array $attributes): Category
     {
@@ -26,7 +26,7 @@ class CategoryService
     }
 
     /**
-     * @param  array{name?: string, description?: string|null}  $attributes
+     * @param  array{name?: string, description?: string|null, outfit_group?: string}  $attributes
      */
     public function updateCategory(int $id, array $attributes): Category
     {

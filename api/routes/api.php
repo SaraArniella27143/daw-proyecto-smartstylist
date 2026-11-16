@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ColorController;
 use App\Http\Controllers\Api\StyleController;
 use App\Http\Controllers\Api\GarmentController;
 use App\Http\Controllers\Api\OutfitController;
+use App\Http\Controllers\Api\ScheduleController;
 
 Route::get('/health', fn () => response()->json(['status' => 'ok']));
 Route::post('/login', [AuthController::class, 'login']);
@@ -39,6 +40,13 @@ Route::middleware('auth:api')->group(function (): void {
     Route::put('/outfits/{outfit}/garments', [OutfitController::class, 'replaceGarments'])->whereNumber('outfit');
 
     Route::get('/outfits/suggestions', [OutfitController::class, 'suggestions']);
+
+    Route::get('/schedules', [ScheduleController::class, 'index']);
+    Route::post('/schedules', [ScheduleController::class, 'store']);
+    Route::get('/schedules/{schedule}', [ScheduleController::class, 'show'])->whereNumber('schedule');
+    Route::put('/schedules/{schedule}', [ScheduleController::class, 'update'])->whereNumber('schedule');
+    Route::patch('/schedules/{schedule}', [ScheduleController::class, 'update'])->whereNumber('schedule');
+    Route::delete('/schedules/{schedule}', [ScheduleController::class, 'destroy'])->whereNumber('schedule');
 
 
     Route::middleware('role:admin')->group(function (): void {

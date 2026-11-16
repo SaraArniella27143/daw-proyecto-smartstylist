@@ -2,7 +2,7 @@
   "info": { 
     "_postman_id": "6f77a50d-167e-42f3-a571-4e8d8df6f782",
     "name": "SmartStylist API",
-    "description": "Coleccion para probar SmartStylist API: health check, registro, autenticacion JWT, cierre de sesion, administracion y borrado de usuarios, y CRUD de categorias, estilos y colores. Incluye casos de permisos, validacion, recursos inexistentes y conflictos. No utiliza scripts: tokens e identificadores se copian manualmente a las variables de coleccion. Las cuentas demo y sus contrasenas conocidas son solo para desarrollo.",
+    "description": "Coleccion para probar SmartStylist API: health check, registro, autenticacion JWT, cierre de sesion, administracion y borrado de usuarios, y CRUD de categorias, estilos y colores. Incluye casos de permisos, validacion, recursos inexistentes y conflictos. Los tokens se guardan automaticamente en variables del entorno activo o, si no hay uno seleccionado, en variables de la coleccion; los identificadores se copian manualmente. Las cuentas demo y sus contrasenas conocidas son solo para desarrollo.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -21,7 +21,7 @@
   "item": [
     {
       "name": "Autenticación",
-      "description": "Credenciales demo locales: admin@cifpaviles.es / Admin1234!; user1@cifpaviles.es y user2@cifpaviles.es / User1234!. Copia manualmente access_token desde login a la variable indicada.",
+      "description": "Credenciales demo locales: admin@cifpaviles.es / Admin1234!; user1@cifpaviles.es y user2@cifpaviles.es / User1234!. Al iniciar sesión, access_token se guarda en la variable correspondiente del entorno activo o, si no hay uno seleccionado, en la variable de la colección.",
       "item": [
         {
           "name": "Health check",
@@ -75,8 +75,27 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "login"]
             },
-            "description": "Cuenta demo disponible solo en entornos no-production. Copia access_token a adminToken."
+            "description": "Cuenta demo disponible solo en entornos no-production. Guarda automáticamente access_token en adminToken del entorno activo o de la colección si no hay un entorno seleccionado."
           },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (pm.response.code !== 200 || typeof body.access_token !== \"string\" || body.access_token.length === 0) {",
+                  "  throw new Error(\"El login no devolvió un access_token válido.\");",
+                  "}",
+                  "if (pm.environment.name) {",
+                  "  pm.environment.set(\"adminToken\", body.access_token);",
+                  "} else {",
+                  "  pm.collectionVariables.set(\"adminToken\", body.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
           "response": []
         },
         {
@@ -96,8 +115,27 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "login"]
             },
-            "description": "Copia access_token a la variable user1Token."
+            "description": "Guarda automáticamente access_token en user1Token del entorno activo o de la colección si no hay un entorno seleccionado."
           },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (pm.response.code !== 200 || typeof body.access_token !== \"string\" || body.access_token.length === 0) {",
+                  "  throw new Error(\"El login no devolvió un access_token válido.\");",
+                  "}",
+                  "if (pm.environment.name) {",
+                  "  pm.environment.set(\"user1Token\", body.access_token);",
+                  "} else {",
+                  "  pm.collectionVariables.set(\"user1Token\", body.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
           "response": []
         },
         {
@@ -117,8 +155,27 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "login"]
             },
-            "description": "Copia access_token a la variable user2Token."
+            "description": "Guarda automáticamente access_token en user2Token del entorno activo o de la colección si no hay un entorno seleccionado."
           },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (pm.response.code !== 200 || typeof body.access_token !== \"string\" || body.access_token.length === 0) {",
+                  "  throw new Error(\"El login no devolvió un access_token válido.\");",
+                  "}",
+                  "if (pm.environment.name) {",
+                  "  pm.environment.set(\"user2Token\", body.access_token);",
+                  "} else {",
+                  "  pm.collectionVariables.set(\"user2Token\", body.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
           "response": []
         },
         {
@@ -1305,6 +1362,166 @@
               ]
             },
             "description": "Esperado: 200. Combina prendas de la temporada solicitada o year_round según el outfit_group de su categoría. Alterna vestidos y conjuntos de dos piezas cuando hay opciones y puede añadir una prenda del grupo optional. Las prendas se eligen entre las disponibles, por lo que las sugerencias pueden variar. color_id y style_id, si se envían, filtran las prendas del conjunto. Las sugerencias no se guardan automáticamente y la respuesta puede estar vacía."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Calendario",
+      "description": "Planificaciones por fecha civil, independientes del historial de uso. Requiere user1Token y un outfit completo en outfitId.",
+      "item": [
+        {
+          "name": "Planificar mi outfit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outfit_id\": {{outfitId}},\n  \"scheduled_date\": \"2026-03-29\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules"]
+            },
+            "description": "Esperado: 201 y data.scheduled_date en formato YYYY-MM-DD. El outfit debe pertenecer a user1 y tener al menos una prenda principal. Copia data.id en scheduleId y user1ScheduleId."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar mi calendario",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules?from=2026-03-01&to=2026-03-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules"],
+              "query": [
+                { "key": "from", "value": "2026-03-01" },
+                { "key": "to", "value": "2026-03-31" }
+              ]
+            },
+            "description": "Esperado: 200 con las planificaciones propias del rango inclusivo from/to."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar mi planificación",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules/{{scheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules", "{{scheduleId}}"]
+            },
+            "description": "Esperado: 200 con fecha y outfit completo."
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar la fecha planificada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduled_date\": \"2026-10-25\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules/{{scheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules", "{{scheduleId}}"]
+            },
+            "description": "Esperado: 200. scheduled_date se interpreta como día civil de APP_TIMEZONE; no lleva conversión/offset UTC."
+          },
+          "response": []
+        },
+        {
+          "name": "Conflicto - planificar dos outfits el mismo día",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outfit_id\": {{outfitId}},\n  \"scheduled_date\": \"2026-10-25\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules"]
+            },
+            "description": "Ejecuta después de cambiar la planificación de user1 a 2026-10-25. Esperado: 409 Conflict con application/problem+json."
+          },
+          "response": []
+        },
+        {
+          "name": "BOLA - user 2 consulta planificación de user 1",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules/{{user1ScheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules", "{{user1ScheduleId}}"]
+            },
+            "description": "Con user2Token y un ID guardado por user1, esperado: 404 sin revelar información."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar mi planificación",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules/{{scheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules", "{{scheduleId}}"]
+            },
+            "description": "Esperado: 204 sin cuerpo."
           },
           "response": []
         }

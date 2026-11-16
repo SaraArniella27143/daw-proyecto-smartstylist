@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
@@ -42,5 +43,10 @@ class User extends Authenticatable implements JWTSubject
     public function outfits(): HasMany
     {
         return $this->hasMany(Outfit::class);
+    }
+
+    public function schedules(): HasManyThrough
+    {
+        return $this->hasManyThrough(Schedule::class, Outfit::class);
     }
 }

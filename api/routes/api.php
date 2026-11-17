@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\StyleController;
 use App\Http\Controllers\Api\GarmentController;
 use App\Http\Controllers\Api\OutfitController;
 use App\Http\Controllers\Api\ScheduleController;
+use App\Http\Controllers\Api\OutfitLogController;
 
 Route::get('/health', fn () => response()->json(['status' => 'ok']));
 Route::post('/login', [AuthController::class, 'login']);
@@ -47,6 +48,9 @@ Route::middleware('auth:api')->group(function (): void {
     Route::put('/schedules/{schedule}', [ScheduleController::class, 'update'])->whereNumber('schedule');
     Route::patch('/schedules/{schedule}', [ScheduleController::class, 'update'])->whereNumber('schedule');
     Route::delete('/schedules/{schedule}', [ScheduleController::class, 'destroy'])->whereNumber('schedule');
+
+    Route::post('/outfit-logs', [OutfitLogController::class, 'store']);
+    Route::get('/outfit-logs/statistics', [OutfitLogController::class, 'statistics']);
 
 
     Route::middleware('role:admin')->group(function (): void {

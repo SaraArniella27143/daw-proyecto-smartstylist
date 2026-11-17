@@ -2,7 +2,7 @@
   "info": { 
     "_postman_id": "6f77a50d-167e-42f3-a571-4e8d8df6f782",
     "name": "SmartStylist API",
-    "description": "Coleccion para probar SmartStylist API: health check, registro, autenticacion JWT, cierre de sesion, administracion y borrado de usuarios, y CRUD de categorias, estilos y colores. Incluye casos de permisos, validacion, recursos inexistentes y conflictos. Los tokens se guardan automaticamente en variables del entorno activo o, si no hay uno seleccionado, en variables de la coleccion; los identificadores se copian manualmente. Las cuentas demo y sus contrasenas conocidas son solo para desarrollo.",
+    "description": "Coleccion para probar SmartStylist API. Casos de uso, en orden: 1) comprobar disponibilidad de la API y registrar usuarios; 2) iniciar y cerrar sesion con JWT, incluyendo credenciales invalidas; 3) administrar usuarios y comprobar permisos de administrador; 4) consultar y gestionar categorias, estilos y colores; 5) gestionar prendas propias y verificar autenticacion, validaciones, recursos inexistentes y aislamiento entre usuarios; 6) crear, consultar, modificar y eliminar outfits, validar la propiedad de sus prendas y obtener sugerencias por temporada; 7) planificar outfits en el calendario, consultar y actualizar planificaciones, y comprobar conflictos de fecha y permisos; 8) registrar usos de outfits y consultar estadisticas del armario, incluyendo validaciones y propiedad del outfit. La coleccion incluye casos de permisos, errores 401/403/404/422, validacion, aislamiento entre usuarios y conflictos. Los tokens se guardan automaticamente en variables del entorno activo o, si no hay uno seleccionado, en variables de la coleccion; los identificadores se copian manualmente. Las cuentas demo y sus contrasenas conocidas son solo para desarrollo.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -1522,6 +1522,160 @@
               "path": ["api", "schedules", "{{scheduleId}}"]
             },
             "description": "Esperado: 204 sin cuerpo."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Historial y estadísticas",
+      "description": "El historial es independiente de las planificaciones. used_at requiere un offset ISO 8601; la API devuelve el instante en UTC.",
+      "item": [
+        {
+          "name": "Crear outfit para probar historial (user 1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Outfit para registrar uso\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits"]
+            },
+            "description": "Ejecuta antes de registrar un uso; copia data.id en outfitId. Para probar el historial basta un outfit propio, aunque no esté completo."
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar uso real de outfit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outfit_id\": {{outfitId}},\n  \"used_at\": \"2026-11-09T12:00:00+01:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfit-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfit-logs"]
+            },
+            "description": "Esperado: 201 y data.used_at normalizado a UTC (2026-11-09T11:00:00Z). El timestamp usa precisión de segundos. El outfit debe pertenecer a user1; la identidad del usuario se toma del JWT."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar estadísticas del armario",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfit-logs/statistics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfit-logs", "statistics"]
+            },
+            "description": "Esperado: 200 con total_uses, prendas más/menos usadas y combinaciones frecuentes calculadas dinámicamente desde el historial."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear outfit de user 2 para prueba de ownership",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Outfit privado de user 2\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits"]
+            },
+            "description": "Ejecuta como user2 y copia data.id en user2OutfitId para probar el rechazo de ownership desde user1."
+          },
+          "response": []
+        },
+        {
+          "name": "Rechazar outfit de otro usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outfit_id\": {{user2OutfitId}},\n  \"used_at\": \"2026-11-09T12:00:00Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfit-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfit-logs"]
+            },
+            "description": "Esperado: 422 con error en outfit_id. El historial de user1 no debe incluir usos de user2."
+          },
+          "response": []
+        },
+        {
+          "name": "Rechazar fecha-hora sin zona horaria",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outfit_id\": {{outfitId}},\n  \"used_at\": \"2026-11-09T12:00:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfit-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfit-logs"]
+            },
+            "description": "Esperado: 422; used_at debe incluir Z o un offset como +01:00."
           },
           "response": []
         }

@@ -49,4 +49,9 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasManyThrough(Schedule::class, Outfit::class);
     }
+
+    public function outfitLogs(): HasManyThrough
+    {
+        return $this->hasManyThrough(OutfitLog::class, Outfit::class);
+    }
 }

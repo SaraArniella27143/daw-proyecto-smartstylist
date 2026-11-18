@@ -13,6 +13,7 @@
 **/bootstrap/cache/*
 !**/bootstrap/cache/.gitignore
 **/storage/*.key
+/api/storage/app/private/garments/
 **/storage/framework/cache/data/*
 **/storage/framework/sessions/*
 **/storage/framework/testing/*

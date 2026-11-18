@@ -21,7 +21,6 @@ class GarmentSeeder extends Seeder
                 'style' => 'Informal',
                 'name' => 'Camiseta blanca de algodón',
                 'season' => 'year_round',
-                'image_url' => null,
             ],
             [
                 'user_email' => 'user1@cifpaviles.es',
@@ -30,7 +29,6 @@ class GarmentSeeder extends Seeder
                 'style' => 'Informal',
                 'name' => 'Vaqueros azul marino',
                 'season' => 'year_round',
-                'image_url' => null,
             ],
             [
                 'user_email' => 'user2@cifpaviles.es',
@@ -39,7 +37,6 @@ class GarmentSeeder extends Seeder
                 'style' => 'Formal',
                 'name' => 'Camisa negra',
                 'season' => 'autumn',
-                'image_url' => null,
             ],
             [
                 'user_email' => 'user2@cifpaviles.es',
@@ -48,7 +45,6 @@ class GarmentSeeder extends Seeder
                 'style' => 'Informal elegante',
                 'name' => 'Pantalones beis',
                 'season' => 'year_round',
-                'image_url' => null,
             ],
             [
                 'user_email' => 'user1@cifpaviles.es',
@@ -57,7 +53,6 @@ class GarmentSeeder extends Seeder
                 'style' => 'Retro',
                 'name' => 'Vestido rojo de verano',
                 'season' => 'summer',
-                'image_url' => null,
             ],
             [
                 'user_email' => 'user2@cifpaviles.es',
@@ -66,7 +61,6 @@ class GarmentSeeder extends Seeder
                 'style' => 'Clásico',
                 'name' => 'Botas de cuero marrón',
                 'season' => 'autumn',
-                'image_url' => null,
             ],
             [
                 'user_email' => 'user1@cifpaviles.es',
@@ -75,7 +69,6 @@ class GarmentSeeder extends Seeder
                 'style' => 'Urbano',
                 'name' => 'Chaqueta verde',
                 'season' => 'autumn',
-                'image_url' => null,
             ],
             [
                 'user_email' => 'user2@cifpaviles.es',
@@ -84,7 +77,6 @@ class GarmentSeeder extends Seeder
                 'style' => 'Minimalista',
                 'name' => 'Falda midi gris',
                 'season' => 'year_round',
-                'image_url' => null,
             ],
             [
                 'user_email' => 'user1@cifpaviles.es',
@@ -93,7 +85,6 @@ class GarmentSeeder extends Seeder
                 'style' => 'Bohemio',
                 'name' => 'Jersey azul claro',
                 'season' => 'winter',
-                'image_url' => null,
             ],
             [
                 'user_email' => 'user2@cifpaviles.es',
@@ -102,7 +93,6 @@ class GarmentSeeder extends Seeder
                 'style' => 'Deportivo',
                 'name' => 'Pantalones cortos amarillos de correr',
                 'season' => 'summer',
-                'image_url' => null,
             ],
         ];
 
@@ -119,7 +109,6 @@ class GarmentSeeder extends Seeder
                     'color_id' => $color->id,
                     'style_id' => $style->id,
                     'season' => $garment['season'],
-                    'image_url' => $garment['image_url'],
                 ],
             );
         }

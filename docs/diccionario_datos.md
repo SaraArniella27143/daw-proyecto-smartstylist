@@ -70,11 +70,13 @@ Prendas del armario personal. Cada registro pertenece a un usuario.
 | `style_id` | `BIGINT` | SI | FK | — | REFERENCES `styles.id` ON DELETE RESTRICT | Estilo opcional. |
 | `name` | `VARCHAR(120)` | NO | - | — | — | Nombre descriptivo. |
 | `season` | `VARCHAR(20)` | NO | - | — | CHECK (valor permitido: `spring`, `summer`, `autumn`, `winter` o `year_round`) | Temporada de uso, obligatoria. |
-| `image_url` | `VARCHAR(2048)` | SI | - | — | — | Ruta/URL de la imagen; el binario reside en almacenamiento de ficheros. |
+| `image_path` | `VARCHAR(255)` | SI | - | — | — | Ruta relativa de la imagen en el disco configurado de Laravel; `image_url` en la API apunta a una ruta autenticada. |
 | `created_at` | `TIMESTAMPTZ` | SI | - | — | — | Fecha de alta. |
 | `updated_at` | `TIMESTAMPTZ` | SI | - | — | — | Fecha de última modificación. |
 
 Una prenda tiene un único color principal y como máximo un estilo. Si en el futuro se quieren varios colores o estilos por prenda, se añadirán relaciones N:M específicas. No se crea una tabla genérica de etiquetas porque el alcance actual ya distingue categoría, color, estilo y temporada.
+
+La migración desde el campo de texto anterior conserva sus valores en `legacy_image_url` para facilitar una conversión manual. La API ya no expone ese campo ni lo usa como imagen; las fotos nuevas se suben como archivo.
 
 ### `outfits`
 

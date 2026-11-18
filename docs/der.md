@@ -53,7 +53,7 @@ erDiagram
         BIGINT style_id FK
         VARCHAR name
         VARCHAR season
-        VARCHAR image_url
+        VARCHAR image_path
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }

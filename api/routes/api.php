@@ -27,7 +27,9 @@ Route::middleware('auth:api')->group(function (): void {
 
     Route::get('/garments', [GarmentController::class, 'index']);
     Route::post('/garments', [GarmentController::class, 'store']);
+    Route::get('/garments/{garment}/image', [GarmentController::class, 'image'])->whereNumber('garment')->name('garments.image');
     Route::get('/garments/{garment}', [GarmentController::class, 'show'])->whereNumber('garment');
+    Route::post('/garments/{garment}', [GarmentController::class, 'update'])->whereNumber('garment');
     Route::put('/garments/{garment}', [GarmentController::class, 'update'])->whereNumber('garment');
     Route::patch('/garments/{garment}', [GarmentController::class, 'update'])->whereNumber('garment');
     Route::delete('/garments/{garment}', [GarmentController::class, 'destroy'])->whereNumber('garment');

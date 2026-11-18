@@ -26,7 +26,8 @@ abstract class GarmentRequest extends FormRequest
             'style_id' => ['sometimes', 'nullable', 'integer', 'min:1', 'exists:styles,id'],
             'name' => [...$required, 'string', 'max:120'],
             'season' => [...$required, 'string', 'in:'.implode(',', self::ALLOWED_SEASONS)],
-            'image_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'image_url' => ['prohibited'],
             'user_id' => ['prohibited'],
         ];
     }

@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateGarmentRequest;
 use App\Services\GarmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class GarmentController extends ApiController
 {
@@ -27,6 +28,14 @@ class GarmentController extends ApiController
                 $garment,
             ),
         ]);
+    }
+
+    public function image(Request $request, int $garment): StreamedResponse
+    {
+        return $this->garmentService->imageForUser(
+            $this->authenticatedUser($request),
+            $garment,
+        );
     }
 
     public function store(StoreGarmentRequest $request): JsonResponse

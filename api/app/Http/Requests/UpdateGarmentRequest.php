@@ -12,7 +12,7 @@ class UpdateGarmentRequest extends GarmentRequest
         'style_id',
         'name',
         'season',
-        'image_url',
+        'image',
     ];
 
     public function rules(): array

@@ -37,13 +37,13 @@ También se puede crear desde pgAdmin. Utiliza una base local y separada de cual
 
 ### 2. Configurar el entorno
 
-Si todavía no existe `.env`, crea una copia de la plantilla:
+El archivo `.env` no se genera automáticamente. Créalo a partir de de la plantilla:
 
 ```powershell
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+Copy-Item .env.example .env
 ```
 
-Edita `.env` y configura, como mínimo, la conexión PostgreSQL:
+Edita `.env` y configura, como mínimo, la conexión PostgreSQL antes de continuar:
 
 ```dotenv
 APP_NAME=SmartStylist
@@ -71,15 +71,15 @@ composer setup
 
 El script `setup` del proyecto ejecuta, en este orden:
 
-1. `composer install`, para instalar las dependencias declaradas en `composer.lock`.
-2. Crea `.env` desde `.env.example` solo si todavía no existe.
+1. Comprueba que `.env` existe. Si no existe, da un error.
+2. `composer install`, para instalar las dependencias declaradas en `composer.lock`.
 3. Genera la clave de Laravel (`APP_KEY`).
 4. Genera el secreto de firma JWT (`JWT_SECRET`).
 5. Ejecuta las migraciones y carga los seeders (`php artisan migrate --seed --force`).
 
-Este comando **no crea la base de datos PostgreSQL**; por eso hay que crearla y configurar `.env` antes. Las migraciones crean las tablas dentro de la base ya existente.
+Este comando **no crea la base de datos PostgreSQL**; por eso hay que crearla y configurar `.env` antes de ejecutar `composer setup`. Las migraciones crean las tablas dentro de la base ya existente.
 
-> **Importante:** `composer setup` está pensado para una instalación nueva. Genera claves y carga datos de demostración, así que no lo vuelvas a ejecutar sobre una instalación en uso ni en producción. El seeder `UserSeeder` crea cuentas demo con contraseñas conocidas; no uses esas credenciales públicamente. Para aplicar cambios de esquema en una instalación existente, revisa el cambio y ejecuta `php artisan migrate` de forma controlada, sin `--seed`.
+> **Importante:** `composer setup` está pensado para una instalación nueva. Genera claves (`APP_KEY` y `JWT_SECRET`) y carga datos de demostración, así que no lo vuelvas a ejecutar sobre una instalación en uso ni en producción. El seeder `UserSeeder` crea cuentas demo con contraseñas conocidas; no uses esas credenciales públicamente. Para aplicar cambios de esquema en una instalación existente, revisa el cambio y ejecuta `php artisan migrate` de forma controlada, sin `--seed`.
 
 ### Regenerar la base de datos desde cero
 

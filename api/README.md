@@ -2,7 +2,7 @@
 
 API REST de SmartStylist, construida con Laravel 13 y PHP 8.3. La aplicación usa PostgreSQL para persistir usuarios y datos relacionados con el armario y las sugerencias de conjuntos. La autenticación de la API se realiza con JWT (JSON Web Token).
 
-> **Estado actual:** están disponibles el health check, el registro y autenticación JWT, el borrado de usuarios por administradores y la consulta de los catálogos de categorías, colores y estilos para cualquier usuario autenticado. Los administradores pueden crear, actualizar y eliminar esos catálogos. No hay todavía endpoints HTTP para prendas, conjuntos ni agenda. No se permite eliminar al último administrador ni borrar categorías, colores o estilos asociados a prendas.
+> **Estado actual:** la API ofrece health check y autenticación JWT; CRUD del armario personal, outfits y agenda; generación de sugerencias sin persistirlas; registro de usos y consulta de estadísticas. Los usuarios autenticados solo acceden a sus propios recursos. Cualquier usuario autenticado puede consultar los catálogos y solo `admin` puede modificarlos o eliminar usuarios. No se permite eliminar al último administrador ni borrar categorías, colores o estilos asociados a prendas.
 
 ## Requisitos
 
@@ -81,6 +81,16 @@ Este comando **no crea la base de datos PostgreSQL**; por eso hay que crearla y 
 
 > **Importante:** `composer setup` está pensado para una instalación nueva. Genera claves y carga datos de demostración, así que no lo vuelvas a ejecutar sobre una instalación en uso ni en producción. El seeder `UserSeeder` crea cuentas demo con contraseñas conocidas; no uses esas credenciales públicamente. Para aplicar cambios de esquema en una instalación existente, revisa el cambio y ejecuta `php artisan migrate` de forma controlada, sin `--seed`.
 
+### Regenerar la base de datos desde cero
+
+Desde la carpeta `api`, ejecuta:
+
+```powershell
+npm run db:reset
+```
+
+El comando ejecuta `php artisan migrate:fresh --seed`: elimina todas las tablas de la base configurada, vuelve a ejecutar las migraciones y carga los datos de demostración. La base de datos PostgreSQL debe existir y estar configurada en `.env` previamente. **Se perderán todos los datos existentes**; úsalo solo en desarrollo y nunca en una base con datos que quieras conservar.
+
 Si solo necesitas regenerar el secreto JWT en un entorno local:
 
 ```powershell
@@ -97,7 +107,7 @@ La API quedará disponible en `http://127.0.0.1:8000`. Laravel registra las ruta
 
 ## Endpoints disponibles
 
-Todas las solicitudes y respuestas de la API usan JSON. En las peticiones `POST`, envía `Content-Type: application/json` y, para recibir errores en formato JSON, `Accept: application/json`.
+Las solicitudes y respuestas usan JSON, salvo la subida de imágenes de prendas, que se envía como `multipart/form-data`. En las peticiones JSON, envía `Content-Type: application/json` y, para recibir errores en formato JSON, `Accept: application/json`.
 
 | Método | Ruta | Autenticación | Descripción |
 |---|---|---|---|
@@ -118,6 +128,19 @@ Todas las solicitudes y respuestas de la API usan JSON. En las peticiones `POST`
 | `POST` | `/api/styles` | Sí, rol `admin` | Crea un estilo. |
 | `PUT`, `PATCH` | `/api/styles/{id}` | Sí, rol `admin` | Actualiza un estilo. |
 | `DELETE` | `/api/styles/{id}` | Sí, rol `admin` | Elimina un estilo si no está asociado a prendas. |
+| `GET` | `/api/garments`, `/api/garments/{id}` | Sí | Lista o consulta prendas del usuario autenticado. |
+| `POST` | `/api/garments` | Sí | Crea una prenda; admite JSON o `multipart/form-data` para incluir una imagen. |
+| `POST`, `PUT`, `PATCH` | `/api/garments/{id}` | Sí | Actualiza una prenda propia; admite reemplazar la imagen. |
+| `GET` | `/api/garments/{id}/image` | Sí | Recupera la imagen de una prenda propia. |
+| `DELETE` | `/api/garments/{id}` | Sí | Elimina una prenda propia. |
+| `GET`, `POST` | `/api/outfits` | Sí | Lista los outfits propios o crea uno. |
+| `GET`, `PUT`, `PATCH`, `DELETE` | `/api/outfits/{id}` | Sí | Consulta, actualiza o elimina un outfit propio. |
+| `PUT` | `/api/outfits/{id}/garments` | Sí | Sustituye las prendas asociadas al outfit. |
+| `GET` | `/api/outfits/suggestions` | Sí | Genera sugerencias sin guardarlas en la base de datos. |
+| `GET`, `POST` | `/api/schedules` | Sí | Lista planificaciones propias o planifica un outfit propio completo. |
+| `GET`, `PUT`, `PATCH`, `DELETE` | `/api/schedules/{id}` | Sí | Consulta, actualiza o elimina una planificación propia. |
+| `POST` | `/api/outfit-logs` | Sí | Registra el uso de un outfit propio. |
+| `GET` | `/api/outfit-logs/statistics` | Sí | Consulta estadísticas de uso del usuario autenticado. |
 | `GET` | `/up` | No | Health check de Laravel. |
 
 ### Health check de la API
@@ -301,7 +324,7 @@ Los mensajes de validación de Laravel están actualmente en inglés; los mensaj
 
 La colección [SmartStylist API](../docs/api/api.postman_collection.json) contiene solicitudes listas para importar. En Postman, selecciona **Import**, elige **Files** y abre `docs/api/api.postman_collection.json` del repositorio. La colección usa `http://localhost:8000` como `baseUrl` inicial; cámbiala en las variables de la colección si el servidor escucha en otra dirección o puerto.
 
-La colección cubre autenticación y health checks, eliminación de usuarios y operaciones sobre los catálogos de categorías, estilos y colores. Incluye pruebas de permisos, validación, recursos inexistentes y conflictos:
+La colección cubre autenticación y health checks, administración de usuarios y catálogos, prendas e imágenes, outfits y sugerencias, planificación de agenda, e historial y estadísticas de uso. Incluye pruebas de permisos, validación, recursos inexistentes y conflictos:
 
 | Grupo | Solicitud | Resultado esperado |
 |---|---|---|
@@ -311,16 +334,23 @@ La colección cubre autenticación y health checks, eliminación de usuarios y o
 | Catálogos | Crear, reemplazar, actualizar parcialmente y eliminar como administrador | Comprueba las operaciones CRUD de cada catálogo. |
 | Catálogos | Intentar modificar como usuario estándar | `403 Forbidden`. |
 | Catálogos | Enviar datos inválidos o consultar un ID inexistente | Comprueba los errores `422 Unprocessable Content` y `404 Not Found`. |
+| Prendas | Listar, crear, consultar, actualizar y eliminar; subir y recuperar una imagen | Comprueba el acceso por propietario y la validación del archivo. |
+| Outfits | Crear y gestionar outfits y sus prendas; solicitar sugerencias | Las sugerencias se calculan sin crear outfits persistentes. |
+| Agenda | Crear, consultar, actualizar y eliminar planificaciones | Comprueba propiedad, outfit completo y conflictos de fecha. |
+| Historial y estadísticas | Registrar usos y consultar estadísticas | Comprueba propiedad del outfit y métricas derivadas del historial. |
 
 ### Variables y orden recomendado
 
-La colección ya define `baseUrl`, las contraseñas demo y las variables donde guardar tokens (`adminToken`, `user1Token`, `user2Token`). También incluye `categoryId`, `styleId` y `colorId` para las operaciones sobre catálogos. No tiene scripts que copien automáticamente tokens ni IDs: copia los valores de las respuestas y actualiza las variables desde **Edit collection → Variables**.
+La colección ya define `baseUrl`, las contraseñas demo, los tokens (`adminToken`, `user1Token`, `user2Token`) y los IDs usados por las solicitudes. Los scripts de login guardan los tokens automáticamente en el entorno activo o, si no hay uno seleccionado, en las variables de la colección. Los IDs se copian manualmente de las respuestas y se actualizan desde **Edit collection → Variables**.
 
 La colección también define estas variables, que debes completar antes de ejecutar las solicitudes correspondientes:
 
 - `registeredEmail`: una dirección de correo todavía no registrada. Cámbiala cada vez que repitas el registro, ya que el correo debe ser único.
 - `userToDeleteId`: el ID numérico de un usuario que quieras eliminar. Para probar el caso positivo, crea primero una cuenta estándar y copia su `user.id` de la respuesta de registro. Para la prueba `403`, usa el token `user1Token`; para la prueba de borrado correcto, usa `adminToken`.
 - `categoryId`, `styleId` y `colorId`: los IDs de los recursos que quieras consultar, actualizar o eliminar. Después de crear un recurso, copia su `data.id` a la variable correspondiente.
+- `garmentId`, `user1GarmentId` y `user2GarmentId`: IDs de prendas propias; copia `data.id` de la respuesta de creación.
+- `outfitId`, `user1OutfitId` y `user2OutfitId`: IDs de outfits propios; copia `data.id` de la respuesta de creación.
+- `scheduleId` y `user1ScheduleId`: IDs de planificaciones; copia `data.id` de la respuesta de creación.
 
 Orden sugerido:
 
@@ -331,6 +361,9 @@ Orden sugerido:
 5. Ejecuta **Eliminar usuario inexistente** para probar el caso 404.
 6. Ejecuta logout para invalidar el token de usuario 1. Para seguir usando esa variable, vuelve a iniciar sesión.
 7. Para probar cada catálogo, crea un recurso como administrador y copia su ID a la variable correspondiente antes de ejecutar las solicitudes de consulta, actualización o borrado.
+8. Crea prendas para user1 y user2; copia sus IDs a `user1GarmentId` y `user2GarmentId`. Usa una prenda de user1 para `garmentId`.
+9. Crea un outfit completo con las prendas de user1 y copia su ID a `outfitId` y `user1OutfitId`; crea otro para user2 y copia su ID a `user2OutfitId`. Ejecuta las sugerencias con el usuario autenticado.
+10. Crea planificaciones para ambos usuarios y copia sus IDs a `scheduleId` y `user1ScheduleId` según las solicitudes que vayas a probar; después registra usos y consulta las estadísticas.
 
 La colección usa las cuentas de demostración `admin@cifpaviles.es`, `user1@cifpaviles.es` y `user2@cifpaviles.es`. Solo funcionarán si se han cargado esos datos con los seeders. Las contraseñas conocidas y los datos demo son para desarrollo: no ejecutes las solicitudes contra producción.
 

@@ -1,0 +1,1790 @@
+{
+  "info": { 
+    "_postman_id": "6f77a50d-167e-42f3-a571-4e8d8df6f782",
+    "name": "SmartStylist API",
+    "description": "Coleccion para probar SmartStylist API. Casos de uso, en orden: 1) comprobar disponibilidad de la API y registrar usuarios; 2) iniciar y cerrar sesion con JWT, incluyendo credenciales invalidas; 3) administrar usuarios y comprobar permisos de administrador; 4) consultar y gestionar categorias, estilos y colores; 5) gestionar prendas, subir y consultar fotos propias, y verificar autenticacion, validaciones, recursos inexistentes y aislamiento entre usuarios; 6) crear, consultar, modificar y eliminar outfits, validar la propiedad de sus prendas y obtener sugerencias por temporada; 7) planificar outfits en el calendario, consultar y actualizar planificaciones, y comprobar conflictos de fecha y permisos; 8) registrar usos de outfits y consultar estadisticas del armario, incluyendo validaciones y propiedad del outfit. La coleccion incluye casos de permisos, errores 401/403/404/422, validacion, aislamiento entre usuarios y conflictos. Los tokens se guardan automaticamente en variables del entorno activo o, si no hay uno seleccionado, en variables de la coleccion; los identificadores se copian manualmente. Las cuentas demo y sus contrasenas conocidas son solo para desarrollo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "adminDemoPassword", "value": "Admin1234!" },
+    { "key": "userDemoPassword", "value": "User1234!" },
+    { "key": "adminToken", "value": "" },
+    { "key": "user1Token", "value": "" },
+    { "key": "user2Token", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "styleId", "value": "" },
+    { "key": "colorId", "value": "" },
+    { "key": "garmentId", "value": "" },
+    { "key": "user1GarmentId", "value": "" },
+    { "key": "user2GarmentId", "value": "" },
+    { "key": "outfitId", "value": "" },
+    { "key": "user1OutfitId", "value": "" },
+    { "key": "user2OutfitId", "value": "" },
+    { "key": "scheduleId", "value": "" },
+    { "key": "user1ScheduleId", "value": "" },
+    { "key": "registeredEmail", "value": "" },
+    { "key": "userToDeleteId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Autenticación",
+      "description": "Credenciales demo locales: admin@cifpaviles.es / Admin1234!; user1@cifpaviles.es y user2@cifpaviles.es / User1234!. Al iniciar sesión, access_token se guarda en la variable correspondiente del entorno activo o, si no hay uno seleccionado, en la variable de la colección.",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Endpoint público para confirmar que la API está disponible."
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar usuario",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Usuario Postman\",\n  \"email\": \"{{registeredEmail}}\",\n  \"password\": \"PostmanPassword123!\",\n  \"password_confirmation\": \"PostmanPassword123!\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "register"]
+            },
+            "description": "POST /api/register. Para repetir la prueba, cambia registeredEmail por una dirección todavía no registrada. Espera 201 y un usuario con rol user."
+          },
+          "response": []
+        },
+        {
+          "name": "Iniciar sesión como administrador",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@cifpaviles.es\",\n  \"password\": \"{{adminDemoPassword}}\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "login"]
+            },
+            "description": "Cuenta demo disponible solo en entornos no-production. Guarda automáticamente access_token en adminToken del entorno activo o de la colección si no hay un entorno seleccionado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (pm.response.code !== 200 || typeof body.access_token !== \"string\" || body.access_token.length === 0) {",
+                  "  throw new Error(\"El login no devolvió un access_token válido.\");",
+                  "}",
+                  "if (pm.environment.name) {",
+                  "  pm.environment.set(\"adminToken\", body.access_token);",
+                  "} else {",
+                  "  pm.collectionVariables.set(\"adminToken\", body.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Iniciar sesión como usuario 1",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user1@cifpaviles.es\",\n  \"password\": \"{{userDemoPassword}}\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "login"]
+            },
+            "description": "Guarda automáticamente access_token en user1Token del entorno activo o de la colección si no hay un entorno seleccionado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (pm.response.code !== 200 || typeof body.access_token !== \"string\" || body.access_token.length === 0) {",
+                  "  throw new Error(\"El login no devolvió un access_token válido.\");",
+                  "}",
+                  "if (pm.environment.name) {",
+                  "  pm.environment.set(\"user1Token\", body.access_token);",
+                  "} else {",
+                  "  pm.collectionVariables.set(\"user1Token\", body.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Iniciar sesión como usuario 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user2@cifpaviles.es\",\n  \"password\": \"{{userDemoPassword}}\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "login"]
+            },
+            "description": "Guarda automáticamente access_token en user2Token del entorno activo o de la colección si no hay un entorno seleccionado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (pm.response.code !== 200 || typeof body.access_token !== \"string\" || body.access_token.length === 0) {",
+                  "  throw new Error(\"El login no devolvió un access_token válido.\");",
+                  "}",
+                  "if (pm.environment.name) {",
+                  "  pm.environment.set(\"user2Token\", body.access_token);",
+                  "} else {",
+                  "  pm.collectionVariables.set(\"user2Token\", body.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Cerrar sesión e invalidar token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "logout"]
+            },
+            "description": "Esperado: 204 sin cuerpo. Invalida el JWT de user1Token; después de ejecutarla, inicia sesión otra vez para seguir usando las peticiones protegidas."
+          },
+          "response": []
+        },
+        {
+          "name": "Login con credenciales inválidas",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"no-existe@example.test\",\n  \"password\": \"incorrecta\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "login"]
+            },
+            "description": "Prueba negativa: debe responder 401 en Problem Details."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Administración de usuarios",
+      "description": "Crea una cuenta estándar desde Registrar usuario y copia su id a userToDeleteId. La cuenta de administrador se provisiona fuera del registro público.",
+      "item": [
+        {
+          "name": "Eliminar usuario (debe dar 403 a user)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userToDeleteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userToDeleteId}}"]
+            },
+            "description": "Prueba negativa: un usuario estándar no puede borrar cuentas. Esperado: 403 Problem Details."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar usuario (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userToDeleteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userToDeleteId}}"]
+            },
+            "description": "Esperado: 204 sin cuerpo. Elimina la cuenta y sus datos asociados en cascada. No se permite eliminar al último administrador."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar usuario inexistente (admin, 404)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/999999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "999999999"]
+            },
+            "description": "Prueba negativa: esperado 404 en Problem Details."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Catálogos",
+      "description": "CRUD de categorias, estilos y colores. Todos los endpoints requieren autenticacion; los usuarios pueden leer y los administradores crear, actualizar y eliminar. Incluye casos negativos de permisos, validacion, recursos inexistentes y conflictos por prendas asociadas.",
+      "item": [
+        {
+          "name": "Categorias",
+          "description": "CRUD de categorias. outfit_group es obligatorio al crear y admite upper_body, lower_body, full_body u optional. Las lecturas requieren autenticacion; crear, actualizar y eliminar requieren token admin.",
+          "item": [
+            {
+              "name": "Listar categorias",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "categories"]
+                },
+                "description": "Esperado: 200 con la lista de recursos en data."
+              },
+              "response": []
+            },
+            {
+              "name": "Consultar categoria por ID",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "categories", "{{categoryId}}"]
+                },
+                "description": "Define categoryId con un ID existente de la respuesta de creacion. Esperado: 200 con data."
+              },
+              "response": []
+            },
+            {
+              "name": "Crear categoria (admin)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "categories"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Categoria Postman\",\n  \"description\": \"Categoria de ejemplo.\",\n  \"outfit_group\": \"optional\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "description": "Esperado: 201. Copia data.id de la respuesta en categoryId. Usa un nombre unico."
+              },
+              "response": []
+            },
+            {
+              "name": "Crear categoria (debe dar 403 a user)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "categories"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Categoria no autorizada\",\n  \"description\": \"Prueba de permisos.\",\n  \"outfit_group\": \"optional\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "description": "Prueba negativa: el usuario estandar no puede crear elementos del catalogo. Esperado: 403 Problem Details."
+              },
+              "response": []
+            },
+            {
+              "name": "Reemplazar categoria (PUT, admin)",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "categories", "{{categoryId}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Categoria Postman updated\",\n  \"description\": \"Categoria de ejemplo.\",\n  \"outfit_group\": \"optional\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "description": "Esperado: 200. Actualiza los campos enviados; utiliza un categoryId existente."
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar categoria parcialmente (PATCH, admin)",
+              "request": {
+                "method": "PATCH",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "categories", "{{categoryId}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"description\": \"Updated description for Categoria Postman.\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "description": "Esperado: 200. Actualiza solo el campo enviado."
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar categoria (admin)",
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "categories", "{{categoryId}}"]
+                },
+                "description": "Esperado: 204 sin cuerpo. Si el recurso esta asociado a prendas, responde 409 y no lo elimina."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Estilos",
+          "description": "CRUD de estilos. Las lecturas requieren autenticacion; crear, actualizar y eliminar requieren token admin.",
+          "item": [
+            {
+              "name": "Listar estilos",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/styles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "styles"]
+                },
+                "description": "Esperado: 200 con la lista de recursos en data."
+              },
+              "response": []
+            },
+            {
+              "name": "Consultar estilo por ID",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/styles/{{styleId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "styles", "{{styleId}}"]
+                },
+                "description": "Define styleId con un ID existente de la respuesta de creacion. Esperado: 200 con data."
+              },
+              "response": []
+            },
+            {
+              "name": "Crear estilo (admin)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/styles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "styles"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Estilo Postman\",\n  \"description\": \"Estilo de ejemplo.\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "description": "Esperado: 201. Copia data.id de la respuesta en styleId. Usa un nombre unico."
+              },
+              "response": []
+            },
+            {
+              "name": "Crear estilo (debe dar 403 a user)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/styles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "styles"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Estilo no autorizado\",\n  \"description\": \"Prueba de permisos.\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "description": "Prueba negativa: el usuario estandar no puede crear elementos del catalogo. Esperado: 403 Problem Details."
+              },
+              "response": []
+            },
+            {
+              "name": "Reemplazar estilo (PUT, admin)",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/styles/{{styleId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "styles", "{{styleId}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Estilo Postman updated\",\n  \"description\": \"Estilo de ejemplo.\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "description": "Esperado: 200. Actualiza los campos enviados; utiliza un styleId existente."
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar estilo parcialmente (PATCH, admin)",
+              "request": {
+                "method": "PATCH",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/styles/{{styleId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "styles", "{{styleId}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"description\": \"Updated description for Estilo Postman.\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "description": "Esperado: 200. Actualiza solo el campo enviado."
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar estilo (admin)",
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/styles/{{styleId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "styles", "{{styleId}}"]
+                },
+                "description": "Esperado: 204 sin cuerpo. Si el recurso esta asociado a prendas, responde 409 y no lo elimina."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Colores",
+          "description": "CRUD de colores. Las lecturas requieren autenticacion; crear, actualizar y eliminar requieren token admin.",
+          "item": [
+            {
+              "name": "Listar colores",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/colors",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "colors"]
+                },
+                "description": "Esperado: 200 con data como lista de colores."
+              },
+              "response": []
+            },
+            {
+              "name": "Crear color (admin)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Color Postman\",\n  \"hex_code\": \"#DDAAFF\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/colors",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "colors"]
+                },
+                "description": "Esperado: 201. Usa un nombre único; el catálogo impide duplicados."
+              },
+              "response": []
+            },
+            {
+              "name": "Crear color (debe dar 403 a user)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Color no autorizado\",\n  \"hex_code\": \"#AABBCC\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/colors",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "colors"]
+                },
+                "description": "Esperado: 403 y Content-Type application/problem+json."
+              },
+              "response": []
+            },
+            {
+              "name": "Color inexistente",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/colors/0",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "colors", "0"]
+                },
+                "description": "Esperado: 404 Problem Details."
+              },
+              "response": []
+            },
+            {
+              "name": "Crear color con datos inválidos",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"\",\n  \"hex_code\": \"verde\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/colors",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "colors"]
+                },
+                "description": "Esperado: 422 con errores de validación en Problem Details."
+              },
+              "response": []
+            },
+            {
+              "name": "Consultar color por ID",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/colors/{{colorId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "colors", "{{colorId}}"]
+                },
+                "description": "Define colorId con un ID existente. Esperado: 200 con data."
+              },
+              "response": []
+            },
+            {
+              "name": "Reemplazar color (PUT, admin)",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/colors/{{colorId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "colors", "{{colorId}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Color Postman actualizado\",\n  \"hex_code\": \"#DDAAFF\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "description": "Esperado: 200. PUT requiere name o hex_code; este ejemplo envia ambos."
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar color parcialmente (PATCH, admin)",
+              "request": {
+                "method": "PATCH",
+                "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/colors/{{colorId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "colors", "{{colorId}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Color Postman renombrado\"\n}",
+                  "options": {
+                    "raw": { "language": "json" }
+                  }
+                },
+                "description": "Esperado: 200. Actualiza solo el nombre, que debe ser unico."
+              },
+              "response": []
+            },
+            {
+              "name": "Eliminar color (admin)",
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/colors/{{colorId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "colors", "{{colorId}}"]
+                },
+                "description": "Esperado: 204 sin cuerpo. Si el color esta asociado a prendas, responde 409 y no lo elimina."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Prendas",
+      "description": "CRUD personal de prendas. Para subir una imagen, selecciona un archivo en el campo image de las solicitudes multipart/form-data (JPG, PNG o WebP, hasta 5 MB); la respuesta devuelve image_url, que requiere el token del propietario. Inicia sesión como user1/user2 antes de ejecutar. Copia manualmente IDs de las respuestas en las variables garmentId, user1GarmentId y user2GarmentId.",
+      "item": [
+        {
+          "name": "Listar mis prendas (user 1)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 200 y solo prendas de user1. Con seeders, incluye «Camiseta blanca de algodón»; guarda uno de sus id en user1GarmentId."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar mis prendas (user 2)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 200 y solo prendas de user2. Con seeders, incluye «Camisa negra»; guarda uno de sus id en user2GarmentId."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear prenda propia",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"color_id\": 1,\n  \"style_id\": 1,\n  \"name\": \"Prenda creada desde Postman\",\n  \"season\": \"summer\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 201. Los IDs 1 son las categorías, colores y estilos de ejemplo después de db:reset. Copia data.id de la respuesta en garmentId para probar show/update/delete. Para adjuntar una foto, usa «Crear prenda con foto»."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear prenda con foto",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category_id", "value": "1", "type": "text" },
+                { "key": "color_id", "value": "1", "type": "text" },
+                { "key": "style_id", "value": "1", "type": "text" },
+                { "key": "name", "value": "Prenda creada con foto", "type": "text" },
+                { "key": "season", "value": "summer", "type": "text" },
+                { "key": "image", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Selecciona un archivo JPG, PNG o WebP en image. Esperado: 201 con image_url y el ID de la prenda. Copia data.id en garmentId."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear prenda con campos opcionales nulos",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"color_id\": 1,\n  \"style_id\": null,\n  \"name\": \"Prenda sin estilo ni imagen\",\n  \"season\": \"year_round\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 201; style_id es opcional y acepta null. La foto también es opcional."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar mi prenda",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{garmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{garmentId}}"]
+            },
+            "description": "Esperado: 200 con la prenda y sus relaciones de categoría, color y estilo."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar foto de mi prenda",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{garmentId}}/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{garmentId}}", "image"]
+            },
+            "description": "Devuelve el archivo de image_url si la prenda pertenece al usuario autenticado."
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar mi prenda (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prenda actualizada desde Postman\",\n  \"season\": \"winter\",\n  \"style_id\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{garmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{garmentId}}"]
+            },
+            "description": "Esperado: 200. PATCH permite enviar únicamente los campos a modificar."
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar foto de mi prenda",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{garmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{garmentId}}"]
+            },
+            "description": "Selecciona el nuevo archivo image. La ruta POST permite que PHP procese multipart/form-data. Esperado: 200 con la nueva image_url."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar foto de mi prenda",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{garmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{garmentId}}"]
+            },
+            "description": "Esperado: 200 y data.image_url=null. El archivo se elimina del disco configurado."
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar mi prenda (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"color_id\": 1,\n  \"style_id\": 1,\n  \"name\": \"Prenda reemplazada desde Postman\",\n  \"season\": \"spring\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{garmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{garmentId}}"]
+            },
+            "description": "Esperado: 200. PUT requiere category_id, color_id, name y season. La foto se conserva si se omite; para cambiarla usa «Actualizar foto de mi prenda»."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar mi prenda",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{garmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{garmentId}}"]
+            },
+            "description": "Esperado: 204 sin cuerpo. Ejecuta solo después de comprobar las peticiones show/update."
+          },
+          "response": []
+        },
+        {
+          "name": "Prueba 401 sin token",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": { "type": "noauth" },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 401 con Content-Type application/problem+json."
+          },
+          "response": []
+        },
+        {
+          "name": "Prueba 404 prenda inexistente",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "0"]
+            },
+            "description": "Esperado: 404 Problem Details."
+          },
+          "response": []
+        },
+        {
+          "name": "Prueba 422 temporada y referencias inválidas",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 999,\n  \"color_id\": 999,\n  \"style_id\": 999,\n  \"name\": \"Prenda inválida\",\n  \"season\": \"fall\",\n  \"image_url\": \"https://example.test/no-se-admite-url\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 422 Problem Details; categoría, color, estilo, temporada e image_url enviada directamente fallan validación. Las imágenes se envían en el campo image como archivo."
+          },
+          "response": []
+        },
+        {
+          "name": "Prueba 422 no se permite user_id",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"category_id\": 1,\n  \"color_id\": 1,\n  \"name\": \"No se debe suplantar propietario\",\n  \"season\": \"summer\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments"]
+            },
+            "description": "Esperado: 422. El propietario se obtiene exclusivamente del JWT."
+          },
+          "response": []
+        },
+        {
+          "name": "BOLA - usuario 2 consulta prenda de usuario 1",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{user1GarmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{user1GarmentId}}"]
+            },
+            "description": "Primero inicia sesión como user1, lista sus prendas y copia un ID en user1GarmentId. Luego usa el token de user2. Esperado: 404 sin revelar la prenda."
+          },
+          "response": []
+        },
+        {
+          "name": "BOLA - usuario 2 modifica prenda de usuario 1",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Intento de modificación ajena\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{user1GarmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{user1GarmentId}}"]
+            },
+            "description": "Con user2Token y un ID perteneciente a user1, debe responder 404. Después puedes consultar la prenda como user1 para confirmar que no cambió."
+          },
+          "response": []
+        },
+        {
+          "name": "BOLA - usuario 2 reemplaza prenda de usuario 1",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"color_id\": 1,\n  \"name\": \"Intento de reemplazo ajeno\",\n  \"season\": \"summer\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{user1GarmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{user1GarmentId}}"]
+            },
+            "description": "Con user2Token y un ID perteneciente a user1, debe responder 404. El cuerpo es válido para que la prueba mida ownership y no validación."
+          },
+          "response": []
+        },
+        {
+          "name": "BOLA - usuario 2 elimina prenda de usuario 1",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/garments/{{user1GarmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "garments", "{{user1GarmentId}}"]
+            },
+            "description": "Con user2Token y un ID perteneciente a user1, debe responder 404 y la prenda debe seguir existiendo para user1."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Outfits",
+      "description": "Gestión de outfits. Copia manualmente IDs de las respuestas en outfitId y user1OutfitId.",
+      "item": [
+        {
+          "name": "Crear outfit (user 1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Outfit desde Postman\",\n  \"description\": \"Conjunto de prueba\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits"]
+            },
+            "description": "Esperado: 201 y data.is_complete=false. Copia data.id en outfitId y user1OutfitId."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar mis outfits (user 1)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits"]
+            },
+            "description": "Esperado: 200 y solo outfits del usuario autenticado."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar mi outfit",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/{{outfitId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "{{outfitId}}"]
+            },
+            "description": "Esperado: 200 con las prendas y sus atributos is_primary/note."
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar mi outfit",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Outfit actualizado desde Postman\",\n  \"description\": \"Descripción modificada\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/{{outfitId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "{{outfitId}}"]
+            },
+            "description": "Esperado: 200. PATCH permite enviar solo los campos que se desean modificar."
+          },
+          "response": []
+        },
+        {
+          "name": "Reemplazar prendas de mi outfit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"garments\": [\n    {\n      \"garment_id\": {{user1GarmentId}},\n      \"is_primary\": true,\n      \"note\": \"Prenda principal\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/{{outfitId}}/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "{{outfitId}}", "garments"]
+            },
+            "description": "Esperado: 200 y data.is_complete=true. Reemplaza la asociación completa; garments: [] la vacía."
+          },
+          "response": []
+        },
+        {
+          "name": "BOLA - user 2 consulta outfit de user 1",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/{{user1OutfitId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "{{user1OutfitId}}"]
+            },
+            "description": "Con user2Token y un ID guardado por user1, esperado: 404 sin revelar información."
+          },
+          "response": []
+        },
+        {
+          "name": "Rechazar prenda de otro usuario",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"garments\": [\n    {\n      \"garment_id\": {{user2GarmentId}},\n      \"is_primary\": true\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/{{outfitId}}/garments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "{{outfitId}}", "garments"]
+            },
+            "description": "Esperado: 422; primero lista prendas como user2 para guardar user2GarmentId. La asociación actual debe permanecer intacta."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar mi outfit",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/{{outfitId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "{{outfitId}}"]
+            },
+            "description": "Esperado: 204 sin cuerpo."
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener sugerencias para verano",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits/suggestions?season=summer&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits", "suggestions"],
+              "query": [
+                { "key": "season", "value": "summer" },
+                { "key": "limit", "value": "5" }
+              ]
+            },
+            "description": "Esperado: 200. Combina prendas de la temporada solicitada o year_round según el outfit_group de su categoría. Alterna vestidos y conjuntos de dos piezas cuando hay opciones y puede añadir una prenda del grupo optional. Las prendas se eligen entre las disponibles, por lo que las sugerencias pueden variar. color_id y style_id, si se envían, filtran las prendas del conjunto. Las sugerencias no se guardan automáticamente y la respuesta puede estar vacía."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Calendario",
+      "description": "Planificaciones por fecha civil, independientes del historial de uso. Requiere user1Token y un outfit completo en outfitId.",
+      "item": [
+        {
+          "name": "Planificar mi outfit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outfit_id\": {{outfitId}},\n  \"scheduled_date\": \"2026-03-29\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules"]
+            },
+            "description": "Esperado: 201 y data.scheduled_date en formato YYYY-MM-DD. El outfit debe pertenecer a user1 y tener al menos una prenda principal. Copia data.id en scheduleId y user1ScheduleId."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar mi calendario",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules?from=2026-03-01&to=2026-03-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules"],
+              "query": [
+                { "key": "from", "value": "2026-03-01" },
+                { "key": "to", "value": "2026-03-31" }
+              ]
+            },
+            "description": "Esperado: 200 con las planificaciones propias del rango inclusivo from/to."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar mi planificación",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules/{{scheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules", "{{scheduleId}}"]
+            },
+            "description": "Esperado: 200 con fecha y outfit completo."
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar la fecha planificada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduled_date\": \"2026-10-25\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules/{{scheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules", "{{scheduleId}}"]
+            },
+            "description": "Esperado: 200. scheduled_date se interpreta como día civil de APP_TIMEZONE; no lleva conversión/offset UTC."
+          },
+          "response": []
+        },
+        {
+          "name": "Conflicto - planificar dos outfits el mismo día",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outfit_id\": {{outfitId}},\n  \"scheduled_date\": \"2026-10-25\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules"]
+            },
+            "description": "Ejecuta después de cambiar la planificación de user1 a 2026-10-25. Esperado: 409 Conflict con application/problem+json."
+          },
+          "response": []
+        },
+        {
+          "name": "BOLA - user 2 consulta planificación de user 1",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules/{{user1ScheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules", "{{user1ScheduleId}}"]
+            },
+            "description": "Con user2Token y un ID guardado por user1, esperado: 404 sin revelar información."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar mi planificación",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules/{{scheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules", "{{scheduleId}}"]
+            },
+            "description": "Esperado: 204 sin cuerpo."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Historial y estadísticas",
+      "description": "El historial es independiente de las planificaciones. used_at requiere un offset ISO 8601; la API devuelve el instante en UTC.",
+      "item": [
+        {
+          "name": "Crear outfit para probar historial (user 1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Outfit para registrar uso\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits"]
+            },
+            "description": "Ejecuta antes de registrar un uso; copia data.id en outfitId. Para probar el historial basta un outfit propio, aunque no esté completo."
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar uso real de outfit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outfit_id\": {{outfitId}},\n  \"used_at\": \"2026-11-09T12:00:00+01:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfit-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfit-logs"]
+            },
+            "description": "Esperado: 201 y data.used_at normalizado a UTC (2026-11-09T11:00:00Z). El timestamp usa precisión de segundos. El outfit debe pertenecer a user1; la identidad del usuario se toma del JWT."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar estadísticas del armario",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfit-logs/statistics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfit-logs", "statistics"]
+            },
+            "description": "Esperado: 200 con total_uses, prendas más/menos usadas y combinaciones frecuentes calculadas dinámicamente desde el historial."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear outfit de user 2 para prueba de ownership",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user2Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Outfit privado de user 2\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfits"]
+            },
+            "description": "Ejecuta como user2 y copia data.id en user2OutfitId para probar el rechazo de ownership desde user1."
+          },
+          "response": []
+        },
+        {
+          "name": "Rechazar outfit de otro usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outfit_id\": {{user2OutfitId}},\n  \"used_at\": \"2026-11-09T12:00:00Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfit-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfit-logs"]
+            },
+            "description": "Esperado: 422 con error en outfit_id. El historial de user1 no debe incluir usos de user2."
+          },
+          "response": []
+        },
+        {
+          "name": "Rechazar fecha-hora sin zona horaria",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{user1Token}}", "type": "string" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outfit_id\": {{outfitId}},\n  \"used_at\": \"2026-11-09T12:00:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/outfit-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "outfit-logs"]
+            },
+            "description": "Esperado: 422; used_at debe incluir Z o un offset como +01:00."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

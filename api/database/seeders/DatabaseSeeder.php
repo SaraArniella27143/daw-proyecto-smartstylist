@@ -1,0 +1,23 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $this->call([
+            UserSeeder::class,
+            CategorySeeder::class,
+            ColorSeeder::class,
+            StyleSeeder::class,
+            GarmentSeeder::class,
+            OutfitSeeder::class,
+            OutfitGarmentSeeder::class,
+            OutfitLogSeeder::class,
+            ScheduleSeeder::class,
+        ]);
+    }
+}

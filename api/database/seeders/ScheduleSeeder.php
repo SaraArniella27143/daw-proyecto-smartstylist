@@ -32,6 +32,7 @@ class ScheduleSeeder extends Seeder
 
             DB::table('schedules')->updateOrInsert(
                 [
+                    'outfit_id' => $outfit->id,
                     'scheduled_date' => $schedule['scheduled_date'],
                 ],
                 [

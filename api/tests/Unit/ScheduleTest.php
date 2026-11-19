@@ -8,6 +8,8 @@ use App\Models\Garment;
 use App\Models\Outfit;
 use App\Models\Style;
 use App\Models\User;
+use Database\Seeders\OutfitSeeder;
+use Database\Seeders\ScheduleSeeder;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -104,6 +106,37 @@ class ScheduleTest extends TestCase
         Category::query()->create(['name' => 'Camisetas']);
         Color::query()->create(['name' => 'Blanco', 'hex_code' => '#FFFFFF']);
         Style::query()->create(['name' => 'Casual']);
+    }
+
+    public function test_schedule_seeder_preserves_same_dates_for_different_users_and_is_idempotent(): void
+    {
+        foreach (['user1@cifpaviles.es', 'user2@cifpaviles.es'] as $email) {
+            User::query()->create([
+                'name' => 'Usuario de prueba',
+                'email' => $email,
+                'password' => 'password',
+                'role' => 'user',
+            ]);
+        }
+
+        (new OutfitSeeder)->run();
+        $seeder = new ScheduleSeeder;
+
+        $seeder->run();
+
+        $this->assertDatabaseCount('schedules', 10);
+        $this->assertSame(
+            5,
+            User::query()->where('email', 'user1@cifpaviles.es')->firstOrFail()->schedules()->count(),
+        );
+        $this->assertSame(
+            5,
+            User::query()->where('email', 'user2@cifpaviles.es')->firstOrFail()->schedules()->count(),
+        );
+
+        $seeder->run();
+
+        $this->assertDatabaseCount('schedules', 10);
     }
 
     public function test_user_can_create_list_show_update_and_delete_schedules(): void

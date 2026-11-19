@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Auth;
+namespace Tests\Unit;
 
 use App\Models\User;
 use Database\Seeders\UserSeeder;

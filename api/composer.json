@@ -29,10 +29,10 @@
     },
     "scripts": {
         "setup": [
+            "@php -r \"if (!file_exists('.env')) {fwrite('Debes crear el .env manualmente copiando el .env.example.' .PHP_EOL); exit(1); }\"",
             "composer install",
-            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
-            "@php artisan jwt:secret",
+            "@php artisan jwt:secret --force",
             "@php artisan migrate --seed --force"
         ],
         "dev": "@php artisan dev",
@@ -43,9 +43,6 @@
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
-        ],
-        "post-root-package-install": [
-            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
